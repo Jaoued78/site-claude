@@ -289,14 +289,14 @@ function readFileText(file) {
       fr.onerror = () => rej(fr.error);
       fr.readAsText(file, "utf-8");
     }))
-    .catch(() => new Promise((res, rej) => {
+    .catch(e2 => new Promise((res, rej) => {
       // méthode 3 : FileReader readAsArrayBuffer + TextDecoder
       const fr = new FileReader();
       fr.onload = () => {
         try { res(new TextDecoder("utf-8").decode(fr.result)); }
-        catch(e) { rej(e); }
+        catch(e3) { rej(new Error(`décode échoué: ${e3.message}`)); }
       };
-      fr.onerror = () => rej(new Error("impossible de lire le fichier — essaie via le bouton 📂 plutôt que glisser-déposer"));
+      fr.onerror = () => rej(new Error(`3 méthodes échouées — vérifie que le fichier n'est pas ouvert ailleurs, pas dans OneDrive hors-ligne, et pas bloqué par l'antivirus. Erreur: ${fr.error?.message || e2?.message}`));
       fr.readAsArrayBuffer(file);
     }));
 }
