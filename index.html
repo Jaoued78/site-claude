@@ -354,12 +354,18 @@ async function streamCSVToSupabase(file, tableName, onProgress) {
 
 async function ensureTable(tableName, sampleRow) {
   const cols = Object.keys(sampleRow);
-  const colDefs = cols.map(c => `"${c.replace(/"/g,'""')}" text`).join(", ");
-  const sql = `CREATE TABLE IF NOT EXISTS public."${tableName}" (id bigserial primary key, ${colDefs});`;
-  // tente via RPC exec_sql (peut ne pas exister)
-  await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
-    method: "POST", headers: HEADERS, body: JSON.stringify({ query: sql })
-  }).catch(() => {});
+  // appelle create_csv_table RPC (SECURITY DEFINER, créée dans Supabase)
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/create_csv_table`, {
+    method: "POST",
+    headers: HEADERS,
+    body: JSON.stringify({ p_table_name: tableName, p_columns: cols })
+  });
+  if (!r.ok) {
+    const err = await r.text();
+    throw new Error(`impossible de créer la table '${tableName}': ${err.slice(0, 200)}`);
+  }
+  // PostgREST a besoin d'une petite seconde pour recharger le schéma
+  await new Promise(res => setTimeout(res, 800));
 }
 
 async function insertBatch(tableName, rows) {
@@ -380,7 +386,8 @@ async function handleFiles(files) {
 
   for (const file of files) {
     const ext = file.name.split(".").pop().toLowerCase();
-    const tableName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
+    let tableName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
+    if (!/^[a-zA-Z]/.test(tableName)) tableName = "t_" + tableName; // doit commencer par une lettre
     document.getElementById("stLeft").textContent = `import ${file.name} (${(file.size/1e6).toFixed(0)} Mo)…`;
 
     try {
@@ -415,6 +422,13 @@ async function handleFiles(files) {
 }
 
 async function upsertToSupabase(tableName, rows) {
+  // si la table n'existe pas encore, on la crée d'abord
+  const probe = await fetch(`${SB_URL}/rest/v1/${tableName}?limit=1`, { headers: HEADERS });
+  if (!probe.ok) {
+    if (probe.status === 404 || (await probe.clone().text()).includes("does not exist")) {
+      await ensureTable(tableName, rows[0]);
+    }
+  }
   // insert par batch de 500
   const batchSize = 500;
   for (let i = 0; i < rows.length; i += batchSize) {
@@ -426,35 +440,9 @@ async function upsertToSupabase(tableName, rows) {
     });
     if (!r.ok) {
       const err = await r.text();
-      // si la table n'existe pas, on la crée via SQL RPC
-      if (r.status === 404 || err.includes("does not exist")) {
-        await createTableAndInsert(tableName, rows);
-        return;
-      }
-      throw new Error(`${r.status}: ${err}`);
+      throw new Error(`insert échoué ${r.status}: ${err.slice(0, 200)}`);
     }
   }
-}
-
-async function createTableAndInsert(tableName, rows) {
-  // détermine les colonnes depuis la première ligne
-  const cols = Object.keys(rows[0]);
-  const colDefs = cols.map(c => `"${c.replace(/"/g,'""')}" text`).join(", ");
-  const createSQL = `CREATE TABLE IF NOT EXISTS public."${tableName}" (id bigserial primary key, ${colDefs});`;
-
-  const cr = await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
-    method: "POST",
-    headers: HEADERS,
-    body: JSON.stringify({ query: createSQL })
-  });
-
-  // fallback: essaie d'insérer directement (si table existait mais était vide)
-  const ir = await fetch(`${SB_URL}/rest/v1/${tableName}`, {
-    method: "POST",
-    headers: { ...HEADERS, "Prefer": "return=minimal" },
-    body: JSON.stringify(rows.slice(0, 500))
-  });
-  if (!ir.ok) throw new Error(await ir.text());
 }
 
 function parseCSV(text) {
