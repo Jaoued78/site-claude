@@ -297,6 +297,30 @@ function readFileAsText(file) {
   });
 }
 
+// ── détection format ──────────────────────────────────────────────────────────
+// Détecte le format "Key: value - Key: value - ..." (pas de header CSV)
+// Exemple: "Email: x@y.com - Name: Joe - ScreenName: joe - Followers: 3 - Created At: ..."
+function isKVFormat(firstLine) {
+  // doit contenir au moins un "Mot: valeur" et utiliser " - " comme séparateur de champs
+  return /^\s*\w[\w ]*:\s*.+\s+-\s+\w[\w ]*:/.test(firstLine);
+}
+
+// Parse une ligne "Key: value - Key: value" en objet
+// Gère les valeurs qui contiennent " - " (ex: "Created At: Thu Jun 11... +0000 2009")
+function parseKVLine(line) {
+  const obj = {};
+  // split sur " - " UNIQUEMENT quand suivi de "Mot(s): " (lookahead)
+  const parts = line.split(/ - (?=[\w][\w ]*: )/);
+  for (const part of parts) {
+    const idx = part.indexOf(": ");
+    if (idx === -1) continue;
+    const key = part.slice(0, idx).trim();
+    const val = part.slice(idx + 2).trim();
+    obj[key] = val;
+  }
+  return Object.keys(obj).length ? obj : null;
+}
+
 // stream un File CSV/TXT par chunks — ne charge jamais tout en RAM
 // callback(rows, headers, totalInserted) appelé par batch de CHUNK_LINES lignes
 const CHUNK_BYTES = 32 * 1024 * 1024; // 32 Mo par lecture disque
@@ -309,6 +333,7 @@ async function streamCSVToSupabase(file, tableName, onProgress) {
   let headers = null;
   let totalInserted = 0;
   let tableCreated = false;
+  let kvMode = null; // null = pas encore détecté
 
   while (offset < file.size) {
     const buf = await readSliceAsArrayBuffer(file, offset, offset + CHUNK_BYTES);
@@ -319,18 +344,33 @@ async function streamCSVToSupabase(file, tableName, onProgress) {
     // garder la dernière ligne incomplète pour le prochain chunk
     leftover = offset < file.size ? lines.pop() : "";
 
-    if (!headers) {
-      headers = splitLine(lines.shift());
-      if (!headers.length) throw new Error("impossible de lire les headers");
+    // détection format sur la première ligne non vide
+    if (kvMode === null) {
+      const firstNonEmpty = lines.find(l => l.trim());
+      if (!firstNonEmpty) continue;
+      kvMode = isKVFormat(firstNonEmpty);
+      if (!kvMode) {
+        // mode CSV classique : la première ligne = headers
+        headers = splitLine(lines.shift());
+        if (!headers.length) throw new Error("impossible de lire les headers");
+      }
     }
 
     // parser les lignes en objets
     let rows = [];
     for (const line of lines) {
       if (!line.trim()) continue;
-      const vals = splitLine(line);
-      const obj = {};
-      headers.forEach((h, i) => { obj[h.trim()] = (vals[i] ?? "").trim(); });
+      let obj;
+      if (kvMode) {
+        obj = parseKVLine(line);
+        if (!obj) continue;
+        // déduire les headers depuis le premier objet (pour ensureTable)
+        if (!headers) headers = Object.keys(obj);
+      } else {
+        const vals = splitLine(line);
+        obj = {};
+        headers.forEach((h, i) => { obj[h.trim()] = (vals[i] ?? "").trim(); });
+      }
       rows.push(obj);
 
       if (rows.length >= CHUNK_LINES) {
