@@ -11,11 +11,7 @@
   header{width:100%;max-width:980px;margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:1rem;display:flex;justify-content:space-between;align-items:flex-end}
   h1{font-size:1.4rem;color:var(--accent);letter-spacing:.1em}
   .sub{color:var(--muted);font-size:.72rem;margin-top:.3rem}
-  .conn-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:.4rem;transition:background .3s}
-  .conn-dot.ok{background:var(--ok)}
-  .conn-label{font-size:.72rem;color:var(--muted)}
 
-  /* tables panel */
   .panel{width:100%;max-width:980px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.9rem 1rem;margin-bottom:1rem}
   .panel-title{font-size:.75rem;color:var(--accent);margin-bottom:.7rem;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:center}
   .panel-title span{color:var(--muted);font-size:.68rem;font-weight:normal}
@@ -26,21 +22,13 @@
   .t-chip .cnt{font-size:.62rem;opacity:.7}
   .no-tables{color:var(--muted);font-size:.78rem;padding:.5rem 0}
 
-  /* upload zone */
-  .upload-zone{width:100%;max-width:980px;border:2px dashed var(--border);border-radius:8px;padding:1.2rem;text-align:center;color:var(--muted);font-size:.8rem;margin-bottom:1rem;cursor:pointer;transition:border-color .2s,color .2s}
+  .upload-zone{width:100%;max-width:980px;border:2px dashed var(--border);border-radius:8px;padding:1.4rem;text-align:center;color:var(--muted);font-size:.82rem;margin-bottom:1rem;cursor:pointer;transition:border-color .2s,color .2s;line-height:1.7}
   .upload-zone:hover,.upload-zone.over{border-color:var(--accent);color:var(--accent)}
   #fileInput{display:none}
   .up-progress{width:100%;height:3px;appearance:none;border:none;background:var(--border);border-radius:2px;margin-top:.6rem;display:none}
   .up-progress::-webkit-progress-bar{background:var(--border)}
   .up-progress::-webkit-progress-value{background:var(--accent)}
 
-  /* filters */
-  .filters{width:100%;max-width:980px;display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.8rem}
-  .fbtn{background:var(--surface);color:var(--muted);border:1px solid var(--border);padding:.28rem .7rem;font-size:.7rem;border-radius:20px;cursor:pointer;transition:all .15s;font-family:inherit}
-  .fbtn:hover{border-color:var(--accent);color:var(--text)}
-  .fbtn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
-
-  /* search bar */
   .search-bar{width:100%;max-width:980px;display:flex;gap:.5rem;margin-bottom:.8rem}
   .search-bar input{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.75rem 1rem;font-family:inherit;font-size:.95rem;outline:none;border-radius:4px;transition:border-color .2s}
   .search-bar input:focus{border-color:var(--accent)}
@@ -49,7 +37,6 @@
   button.go:hover{opacity:.88}
   button.go:disabled{opacity:.35;cursor:not-allowed}
 
-  /* results */
   .r-header{width:100%;max-width:980px;display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
   .r-count{font-size:.78rem;color:var(--muted)}
   .exp-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:.28rem .7rem;font-size:.7rem;border-radius:4px;cursor:pointer;font-family:inherit}
@@ -69,13 +56,11 @@
   .cp{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.6rem;padding:0;flex-shrink:0}
   .cp:hover{color:var(--accent)}
 
-  /* paging */
   .pag{width:100%;max-width:980px;display:flex;justify-content:center;gap:.4rem;margin-top:1rem;flex-wrap:wrap}
   .pb{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.28rem .62rem;font-size:.75rem;border-radius:4px;cursor:pointer;font-family:inherit}
   .pb.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
   .pb:disabled{opacity:.3;cursor:not-allowed}
 
-  /* misc */
   .empty{text-align:center;color:var(--muted);padding:2.5rem;font-size:.82rem}
   .status-bar{width:100%;max-width:980px;margin-top:1rem;font-size:.68rem;color:var(--muted);border-top:1px solid var(--border);padding-top:.6rem;display:flex;justify-content:space-between}
   .spinner{display:inline-block;width:10px;height:10px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:.3rem}
@@ -90,39 +75,30 @@
 <header>
   <div>
     <h1>⚡ DB SEARCH</h1>
-    <div class="sub">Site Claude · Supabase · recherche multi-tables</div>
+    <div class="sub">recherche locale · aucune donnée envoyée en ligne</div>
   </div>
-  <div style="text-align:right">
-    <div><span class="conn-dot" id="connDot"></span><span class="conn-label" id="connLabel">connexion...</span></div>
-  </div>
+  <div style="text-align:right;font-size:.68rem;color:var(--muted)" id="memInfo"></div>
 </header>
 
-<!-- Tables dispo -->
 <div class="panel">
   <div class="panel-title">
-    TABLES
+    FICHIERS CHARGÉS
     <span id="totalCount"></span>
   </div>
   <div class="table-grid" id="tableGrid">
-    <div class="no-tables"><span class="spinner"></span> chargement...</div>
+    <div class="no-tables">aucun fichier — charge un CSV ou TXT ci-dessous.</div>
   </div>
 </div>
 
-<!-- Upload CSV/JSON dans Supabase -->
 <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-  📂 importe une nouvelle DB (CSV) — glisse ici ou clique · crée la table automatiquement
+  📂 charge tes fichiers (CSV, TXT, JSON, JSONL) — glisse ici ou clique<br>
+  <span style="font-size:.7rem;opacity:.6">tout reste dans ton navigateur, rien n'est envoyé</span>
   <progress class="up-progress" id="upProg" value="0" max="100"></progress>
 </div>
 <input type="file" id="fileInput" multiple accept=".csv,.json,.jsonl,.txt">
 
-<!-- Filtres colonnes -->
-<div class="filters" id="filterBar">
-  <button class="fbtn active" onclick="setFilter('all',this)">TOUT</button>
-</div>
-
-<!-- Barre de recherche -->
 <div class="search-bar">
-  <input type="text" id="searchInput" placeholder="nom, prénom, IP, discord ID, email..." autocomplete="off">
+  <input type="text" id="searchInput" placeholder="email, nom, IP, discord ID..." autocomplete="off">
   <button class="go" id="goBtn" onclick="doSearch(0)">SEARCH</button>
 </div>
 
@@ -132,7 +108,7 @@
 </div>
 
 <div class="results" id="results">
-  <div class="empty">sélectionne des tables et tape une recherche.</div>
+  <div class="empty">charge un fichier et tape une recherche.</div>
 </div>
 <div class="pag" id="pag"></div>
 
@@ -143,441 +119,193 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ── config hardcodée ──────────────────────────────────────────────────────────
-const SB_URL = "https://amhrwbdjbfngidrzyjtw.supabase.co";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtaHJ3YmRqYmZuZ2lkcnp5anR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MDQ3MTgsImV4cCI6MjEwODk4MDcxOH0.FVOmChfjKVCJRGMDekoAKvGBKYMnj1PmBdSTm7OMSdI";
-
-const HEADERS = {
-  "apikey": SB_KEY,
-  "Authorization": `Bearer ${SB_KEY}`,
-  "Content-Type": "application/json"
-};
-
 // ── state ─────────────────────────────────────────────────────────────────────
-const S = {
-  tables: [],        // [{name, columns, count}]
-  active: [],        // tables cochées
-  activeField: "all",
-  query: "", page: 0, size: 25,
-  total: 0, results: [], allResults: []
-};
+const DB = [];   // [{name, rows: [{...}]}]
+const S  = { query: "", page: 0, size: 25, total: 0, allResults: [], results: [] };
 
-// ── init ──────────────────────────────────────────────────────────────────────
-(async function init() {
-  try {
-    await loadTables();
-    document.getElementById("connDot").classList.add("ok");
-    document.getElementById("connLabel").textContent = "connecté";
-  } catch(e) {
-    document.getElementById("connLabel").textContent = "erreur connexion";
-    showToast("connexion Supabase échouée: " + e.message, true);
-  }
-})();
-
-// ── tables ────────────────────────────────────────────────────────────────────
-async function loadTables() {
-  // liste via OpenAPI Supabase
-  let swagger = null;
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1/?apikey=${SB_KEY}`);
-    if (r.ok) {
-      swagger = await r.json();
-    }
-  } catch(e) {
-    // réseau ou CORS — on continue avec 0 tables
-  }
-
-  let names = [];
-  if (swagger && swagger.paths) {
-    names = Object.keys(swagger.paths)
-      .map(p => p.replace(/^\//, ""))
-      .filter(p => p && !p.startsWith("rpc/") && !p.includes("{"));
-  }
-
-  if (!names.length) {
-    document.getElementById("tableGrid").innerHTML =
-      '<div class="no-tables">aucune table — importe un CSV ci-dessous pour commencer.</div>';
-    document.getElementById("stRight").textContent = "0 table";
-    return;
-  }
-
-  // colonnes + count en parallèle
-  S.tables = await Promise.all(names.map(async name => {
-    try {
-      const hr = await fetch(`${SB_URL}/rest/v1/${name}?limit=1`, {
-        headers: { ...HEADERS, "Prefer": "count=exact", "Range": "0-0" }
-      });
-      const cr = hr.headers.get("content-range") || "";
-      const count = parseInt(cr.split("/")[1] || "0") || 0;
-      const data = await hr.json();
-      const columns = Array.isArray(data) && data[0] ? Object.keys(data[0]) : [];
-      return { name, columns, count };
-    } catch {
-      return { name, columns: [], count: 0 };
-    }
-  }));
-
-  S.active = S.tables.map(t => t.name);
-  renderTableGrid();
-  renderFilterBar();
-
-  const total = S.tables.reduce((a, t) => a + t.count, 0);
-  document.getElementById("totalCount").textContent =
-    `${S.tables.length} table${S.tables.length > 1 ? "s" : ""} · ${total.toLocaleString()} entrées`;
-  document.getElementById("stRight").textContent = `${total.toLocaleString()} entrée(s) au total`;
-}
-
-function renderTableGrid() {
-  if (!S.tables.length) return;
-  document.getElementById("tableGrid").innerHTML = S.tables.map(t => `
-    <div class="t-chip ${S.active.includes(t.name) ? "active" : ""}"
-         onclick="toggleTable('${esc(t.name)}', this)">
-      ${esc(t.name)} <span class="cnt">${t.count.toLocaleString()}</span>
-    </div>`).join("");
-}
-
-function toggleTable(name, el) {
-  if (S.active.includes(name)) {
-    if (S.active.length === 1) return;
-    S.active = S.active.filter(n => n !== name);
-    el.classList.remove("active");
-  } else {
-    S.active.push(name);
-    el.classList.add("active");
-  }
-  if (S.query) doSearch(0);
-}
-
-// ── filtres colonnes ──────────────────────────────────────────────────────────
-function renderFilterBar() {
-  const cols = [...new Set(S.tables.flatMap(t => t.columns))].slice(0, 35);
-  const bar = document.getElementById("filterBar");
-  bar.innerHTML = `<button class="fbtn ${S.activeField === "all" ? "active" : ""}" onclick="setFilter('all',this)">TOUT</button>`;
-  cols.forEach(c => {
-    bar.innerHTML += `<button class="fbtn ${S.activeField === c ? "active" : ""}" onclick="setFilter('${esc(c)}',this)">${esc(c.toUpperCase())}</button>`;
-  });
-}
-
-function setFilter(f, el) {
-  S.activeField = f;
-  document.querySelectorAll(".fbtn").forEach(b => b.classList.remove("active"));
-  el.classList.add("active");
-  if (S.query) doSearch(0);
-}
-
-// ── upload CSV → Supabase ─────────────────────────────────────────────────────
+// ── upload ────────────────────────────────────────────────────────────────────
 const dz = document.getElementById("dropZone");
 const fi = document.getElementById("fileInput");
 dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); });
 dz.addEventListener("dragleave", () => dz.classList.remove("over"));
-dz.addEventListener("drop", e => {
-  e.preventDefault(); dz.classList.remove("over");
-  // on lit les fichiers immédiatement depuis dataTransfer avant tout await
-  const files = [...e.dataTransfer.files];
-  handleFiles(files);
-});
+dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); handleFiles([...e.dataTransfer.files]); });
 fi.addEventListener("change", () => { handleFiles([...fi.files]); fi.value = ""; });
-
-// ── helper FileReader (évite NotReadableError sur slice.arrayBuffer) ──────────
-function readSliceAsArrayBuffer(file, start, end) {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(fr.result);
-    fr.onerror = () => reject(new Error("impossible de lire le fichier (FileReader error)"));
-    fr.readAsArrayBuffer(file.slice(start, end));
-  });
-}
-
-function readFileAsText(file) {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(fr.result);
-    fr.onerror = () => reject(new Error("impossible de lire le fichier"));
-    fr.readAsText(file, "utf-8");
-  });
-}
-
-// ── détection format ──────────────────────────────────────────────────────────
-// Détecte le format "Key: value - Key: value - ..." (pas de header CSV)
-// Exemple: "Email: x@y.com - Name: Joe - ScreenName: joe - Followers: 3 - Created At: ..."
-function isKVFormat(firstLine) {
-  // doit contenir au moins un "Mot: valeur" et utiliser " - " comme séparateur de champs
-  return /^\s*\w[\w ]*:\s*.+\s+-\s+\w[\w ]*:/.test(firstLine);
-}
-
-// Parse une ligne "Key: value - Key: value" en objet
-// Gère les valeurs qui contiennent " - " (ex: "Created At: Thu Jun 11... +0000 2009")
-function parseKVLine(line) {
-  const obj = {};
-  // split sur " - " UNIQUEMENT quand suivi de "Mot(s): " (lookahead)
-  const parts = line.split(/ - (?=[\w][\w ]*: )/);
-  for (const part of parts) {
-    const idx = part.indexOf(": ");
-    if (idx === -1) continue;
-    const key = part.slice(0, idx).trim();
-    const val = part.slice(idx + 2).trim();
-    obj[key] = val;
-  }
-  return Object.keys(obj).length ? obj : null;
-}
-
-// stream un File CSV/TXT par chunks — ne charge jamais tout en RAM
-// callback(rows, headers, totalInserted) appelé par batch de CHUNK_LINES lignes
-const CHUNK_BYTES = 32 * 1024 * 1024; // 32 Mo par lecture disque
-const CHUNK_LINES = 2000;              // lignes par insert Supabase
-
-async function streamCSVToSupabase(file, tableName, onProgress) {
-  const decoder = new TextDecoder("utf-8");
-  let offset = 0;
-  let leftover = "";
-  let headers = null;
-  let totalInserted = 0;
-  let tableCreated = false;
-  let kvMode = null; // null = pas encore détecté
-
-  while (offset < file.size) {
-    const buf = await readSliceAsArrayBuffer(file, offset, offset + CHUNK_BYTES);
-    const chunk = leftover + decoder.decode(buf, { stream: true });
-    offset += CHUNK_BYTES;
-
-    const lines = chunk.split(/\r?\n/);
-    // garder la dernière ligne incomplète pour le prochain chunk
-    leftover = offset < file.size ? lines.pop() : "";
-
-    // détection format sur la première ligne non vide
-    if (kvMode === null) {
-      const firstNonEmpty = lines.find(l => l.trim());
-      if (!firstNonEmpty) continue;
-      kvMode = isKVFormat(firstNonEmpty);
-      if (!kvMode) {
-        // mode CSV classique : la première ligne = headers
-        headers = splitLine(lines.shift());
-        if (!headers.length) throw new Error("impossible de lire les headers");
-      }
-    }
-
-    // parser les lignes en objets
-    let rows = [];
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      let obj;
-      if (kvMode) {
-        obj = parseKVLine(line);
-        if (!obj) continue;
-        // déduire les headers depuis le premier objet (pour ensureTable)
-        if (!headers) headers = Object.keys(obj);
-      } else {
-        const vals = splitLine(line);
-        obj = {};
-        headers.forEach((h, i) => { obj[h.trim()] = (vals[i] ?? "").trim(); });
-      }
-      rows.push(obj);
-
-      if (rows.length >= CHUNK_LINES) {
-        if (!tableCreated) { await ensureTable(tableName, rows[0]); tableCreated = true; }
-        await insertBatch(tableName, normalizeRows(rows));
-        totalInserted += rows.length;
-        onProgress(totalInserted, file.size, offset);
-        rows = [];
-      }
-    }
-    // flush le reste du chunk
-    if (rows.length) {
-      if (!tableCreated) { await ensureTable(tableName, rows[0]); tableCreated = true; }
-      await insertBatch(tableName, normalizeRows(rows));
-      totalInserted += rows.length;
-      onProgress(totalInserted, file.size, offset);
-    }
-  }
-  return totalInserted;
-}
-
-// normalise un tableau d'objets : union de toutes les clés, valeurs manquantes = ""
-// requis par PostgREST PGRST102 "All object keys must match"
-function normalizeRows(rows) {
-  if (!rows.length) return rows;
-  const allKeys = [...new Set(rows.flatMap(r => Object.keys(r)))];
-  return rows.map(r => {
-    const n = {};
-    allKeys.forEach(k => { n[k] = r[k] ?? ""; });
-    return n;
-  });
-}
-
-async function ensureTable(tableName, sampleRow) {
-  const cols = Object.keys(sampleRow);
-  // appelle create_csv_table RPC (SECURITY DEFINER, créée dans Supabase)
-  const r = await fetch(`${SB_URL}/rest/v1/rpc/create_csv_table`, {
-    method: "POST",
-    headers: HEADERS,
-    body: JSON.stringify({ p_table_name: tableName, p_columns: cols })
-  });
-  if (!r.ok) {
-    const err = await r.text();
-    throw new Error(`impossible de créer la table '${tableName}': ${err.slice(0, 200)}`);
-  }
-  // PostgREST a besoin d'une petite seconde pour recharger le schéma
-  await new Promise(res => setTimeout(res, 800));
-}
-
-async function insertBatch(tableName, rows) {
-  const r = await fetch(`${SB_URL}/rest/v1/${tableName}`, {
-    method: "POST",
-    headers: { ...HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify(rows)
-  });
-  if (!r.ok) {
-    const err = await r.text();
-    throw new Error(`insert échoué ${r.status}: ${err.slice(0, 200)}`);
-  }
-}
 
 async function handleFiles(files) {
   const prog = document.getElementById("upProg");
   prog.style.display = "block"; prog.value = 0;
 
-  for (const file of files) {
-    const ext = file.name.split(".").pop().toLowerCase();
-    let tableName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
-    if (!/^[a-zA-Z]/.test(tableName)) tableName = "t_" + tableName; // doit commencer par une lettre
-    document.getElementById("stLeft").textContent = `import ${file.name} (${(file.size/1e6).toFixed(0)} Mo)…`;
-
+  for (let fi = 0; fi < files.length; fi++) {
+    const file = files[fi];
+    document.getElementById("stLeft").textContent = `lecture ${file.name}…`;
     try {
-      if (ext === "csv" || ext === "txt") {
-        // streaming pour gros fichiers
-        const total = await streamCSVToSupabase(file, tableName, (inserted, fileSize, bytesRead) => {
-          prog.value = Math.round((bytesRead / fileSize) * 95);
-          document.getElementById("stLeft").textContent = `${tableName}: ${inserted.toLocaleString()} lignes insérées…`;
-        });
-        showToast(`✓ ${tableName} — ${total.toLocaleString()} lignes importées`);
-
-      } else {
-        // json/jsonl : lire en entier (fichiers normalement plus petits)
-        const text = await readFileAsText(file);
-        let rows = [];
-        if (ext === "jsonl") rows = text.trim().split("\n").map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-        else { const p = JSON.parse(text); rows = Array.isArray(p) ? p : (p.data || p.rows || p.results || [p]); }
-        if (!rows.length) { showToast(`${file.name}: vide`, true); continue; }
-        await upsertToSupabase(tableName, rows);
-        showToast(`✓ ${tableName} — ${rows.length} lignes importées`);
-      }
+      const rows = await parseFile(file);
+      if (!rows.length) { showToast(`${file.name}: vide ou non parsable`, true); continue; }
+      // remplace si déjà chargé
+      const existing = DB.findIndex(d => d.name === file.name);
+      if (existing >= 0) DB[existing] = { name: file.name, rows };
+      else DB.push({ name: file.name, rows });
+      showToast(`✓ ${file.name} — ${rows.length.toLocaleString()} lignes`);
     } catch(e) {
-      showToast(`erreur ${file.name}: ${e.message || e}`, true);
-      console.error("import error", file.name, e);
+      showToast(`erreur ${file.name}: ${e.message}`, true);
     }
+    prog.value = Math.round(((fi + 1) / files.length) * 100);
   }
 
   prog.value = 100;
-  setTimeout(() => { prog.style.display = "none"; prog.value = 0; }, 800);
+  setTimeout(() => { prog.style.display = "none"; prog.value = 0; }, 600);
   document.getElementById("stLeft").textContent = "prêt.";
-  await loadTables();
+  renderTableGrid();
 }
 
-async function upsertToSupabase(tableName, rows) {
-  // si la table n'existe pas encore, on la crée d'abord
-  const probe = await fetch(`${SB_URL}/rest/v1/${tableName}?limit=1`, { headers: HEADERS });
-  if (!probe.ok) {
-    if (probe.status === 404 || (await probe.clone().text()).includes("does not exist")) {
-      await ensureTable(tableName, rows[0]);
-    }
+// ── parsers ───────────────────────────────────────────────────────────────────
+async function parseFile(file) {
+  const text = await readFileAsText(file);
+  const ext  = file.name.split(".").pop().toLowerCase();
+
+  if (ext === "json") {
+    const p = JSON.parse(text);
+    return Array.isArray(p) ? p : (p.data || p.rows || p.results || [p]);
   }
-  // insert par batch de 500
-  const batchSize = 500;
-  for (let i = 0; i < rows.length; i += batchSize) {
-    const batch = rows.slice(i, i + batchSize);
-    const r = await fetch(`${SB_URL}/rest/v1/${tableName}`, {
-      method: "POST",
-      headers: { ...HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify(normalizeRows(batch))
-    });
-    if (!r.ok) {
-      const err = await r.text();
-      throw new Error(`insert échoué ${r.status}: ${err.slice(0, 200)}`);
-    }
+  if (ext === "jsonl") {
+    return text.trim().split("\n").map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
   }
+  // CSV / TXT
+  return parseTextFile(text);
 }
 
-function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const headers = splitLine(lines[0]);
+function parseTextFile(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return [];
+
+  // détecte format "Key: value - Key: value"
+  if (isKVFormat(lines[0])) {
+    return lines.map(parseKVLine).filter(Boolean);
+  }
+
+  // CSV classique (virgule, point-virgule ou tab)
+  const headers = splitCSV(lines[0]);
   return lines.slice(1).map(line => {
-    const vals = splitLine(line);
-    const obj = {};
-    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] || "").trim(); });
+    const vals = splitCSV(line);
+    const obj  = {};
+    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] ?? "").trim(); });
     return obj;
   }).filter(r => Object.values(r).some(v => v));
 }
 
-function splitLine(line) {
+function isKVFormat(line) {
+  return /^\s*\w[\w ]*:\s*.+\s+-\s+\w[\w ]*:/.test(line);
+}
+
+function parseKVLine(line) {
+  const obj   = {};
+  const parts = line.split(/ - (?=[\w][\w ]*: )/);
+  for (const part of parts) {
+    const idx = part.indexOf(": ");
+    if (idx === -1) continue;
+    obj[part.slice(0, idx).trim()] = part.slice(idx + 2).trim();
+  }
+  return Object.keys(obj).length ? obj : null;
+}
+
+function splitCSV(line) {
   const res = []; let cur = "", inQ = false;
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
-    if (c === '"' && !inQ) { inQ = true; continue; }
-    if (c === '"' && inQ) { if (line[i+1] === '"') { cur += '"'; i++; } else { inQ = false; } continue; }
+    if (c === '"' && !inQ)  { inQ = true; continue; }
+    if (c === '"' && inQ)   { if (line[i+1] === '"') { cur += '"'; i++; } else { inQ = false; } continue; }
     if ((c === ',' || c === ';' || c === '\t') && !inQ) { res.push(cur); cur = ""; continue; }
     cur += c;
   }
   res.push(cur); return res;
 }
 
-// ── search ────────────────────────────────────────────────────────────────────
+function readFileAsText(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload  = () => res(fr.result);
+    fr.onerror = () => rej(new Error("impossible de lire le fichier"));
+    fr.readAsText(file, "utf-8");
+  });
+}
+
+// ── render fichiers ───────────────────────────────────────────────────────────
+function renderTableGrid() {
+  const grid = document.getElementById("tableGrid");
+  if (!DB.length) {
+    grid.innerHTML = '<div class="no-tables">aucun fichier chargé.</div>';
+    document.getElementById("totalCount").textContent = "";
+    document.getElementById("stRight").textContent = "";
+    return;
+  }
+  grid.innerHTML = DB.map((d, i) => `
+    <div class="t-chip active" onclick="removeDB(${i})" title="clic pour retirer">
+      ${esc(d.name)} <span class="cnt">${d.rows.length.toLocaleString()} ✕</span>
+    </div>`).join("");
+  const total = DB.reduce((a, d) => a + d.rows.length, 0);
+  document.getElementById("totalCount").textContent =
+    `${DB.length} fichier${DB.length > 1 ? "s" : ""} · ${total.toLocaleString()} lignes`;
+  document.getElementById("stRight").textContent = `${total.toLocaleString()} lignes en mémoire`;
+  // estimation RAM (JSON.stringify ~= bytes)
+  try {
+    const mb = (JSON.stringify(DB).length / 1e6).toFixed(1);
+    document.getElementById("memInfo").textContent = `~${mb} Mo en RAM`;
+  } catch {}
+}
+
+function removeDB(i) {
+  DB.splice(i, 1);
+  renderTableGrid();
+  if (S.query) doSearch(0);
+}
+
+// ── search ─────────────────────────────────────────────────────────────────────
 document.getElementById("searchInput").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(0); });
 
-async function doSearch(p = 0) {
+function doSearch(p = 0) {
   const q = document.getElementById("searchInput").value.trim();
   S.query = q; S.page = p;
-  if (!q) { renderResults(); return; }
+  if (!q || !DB.length) { renderResults(); return; }
 
   document.getElementById("stLeft").innerHTML = '<span class="spinner"></span>recherche...';
   document.getElementById("goBtn").disabled = true;
 
-  try {
-    const terms = q.toLowerCase().split(/\s+/);
-    const searches = S.active.map(async tname => {
-      const table = S.tables.find(t => t.name === tname);
-      if (!table || !table.columns.length) return [];
-      const cols = S.activeField === "all" ? table.columns : [S.activeField].filter(f => table.columns.includes(f));
-      if (!cols.length) return [];
+  // micro-délai pour laisser le spinner s'afficher
+  setTimeout(() => {
+    try {
+      const terms = q.toLowerCase().split(/\s+/);
+      S.allResults = [];
 
-      // filtre OR sur toutes les colonnes pour le premier terme
-      const orFilter = cols.map(c => `${c}.ilike.*${terms[0]}*`).join(",");
-      let url = `${SB_URL}/rest/v1/${tname}?or=(${encodeURIComponent(orFilter)})&limit=10000`;
-      const r = await fetch(url, { headers: HEADERS });
-      if (!r.ok) return [];
-      let rows = await r.json();
-
-      // AND pour les termes suivants côté client
-      for (let i = 1; i < terms.length; i++) {
-        const t = terms[i];
-        rows = rows.filter(row => cols.some(c => String(row[c] ?? "").toLowerCase().includes(t)));
+      for (const db of DB) {
+        for (const row of db.rows) {
+          const values = Object.values(row).map(v => String(v ?? "").toLowerCase());
+          if (terms.every(t => values.some(v => v.includes(t)))) {
+            S.allResults.push({ _src: db.name, ...row });
+          }
+        }
       }
-      return rows.map(r => ({ _table: tname, ...r }));
-    });
 
-    const arrays = await Promise.all(searches);
-    S.allResults = arrays.flat();
-    S.total = S.allResults.length;
-    S.results = S.allResults.slice(p * S.size, (p + 1) * S.size);
-    renderResults();
-    document.getElementById("stLeft").textContent = `"${q}" — ${S.total} résultat(s)`;
-  } catch(e) {
-    document.getElementById("stLeft").textContent = "erreur: " + e.message;
-    showToast(e.message, true);
-  }
-  document.getElementById("goBtn").disabled = false;
+      S.total   = S.allResults.length;
+      S.results = S.allResults.slice(p * S.size, (p + 1) * S.size);
+      renderResults();
+      document.getElementById("stLeft").textContent = `"${q}" — ${S.total.toLocaleString()} résultat(s)`;
+    } catch(e) {
+      document.getElementById("stLeft").textContent = "erreur: " + e.message;
+    }
+    document.getElementById("goBtn").disabled = false;
+  }, 10);
 }
 
-// ── render ────────────────────────────────────────────────────────────────────
+// ── render résultats ───────────────────────────────────────────────────────────
 function renderResults() {
   const box = document.getElementById("results");
   const hdr = document.getElementById("rHeader");
   if (!S.query) {
-    box.innerHTML = '<div class="empty">sélectionne des tables et tape une recherche.</div>';
+    box.innerHTML = '<div class="empty">charge un fichier et tape une recherche.</div>';
     hdr.style.display = "none"; renderPag(); return;
   }
   hdr.style.display = "flex";
-  document.getElementById("rCount").textContent = `${S.total} résultat${S.total !== 1 ? "s" : ""}`;
+  document.getElementById("rCount").textContent = `${S.total.toLocaleString()} résultat${S.total !== 1 ? "s" : ""}`;
   if (!S.results.length) { box.innerHTML = '<div class="empty">aucun résultat.</div>'; renderPag(); return; }
   const terms = S.query.toLowerCase().split(/\s+/);
   box.innerHTML = S.results.map(row => renderCard(row, terms)).join("");
@@ -585,10 +313,10 @@ function renderResults() {
 }
 
 function renderCard(row, terms) {
-  const fields = Object.entries(row).filter(([k]) => !k.startsWith("_"));
+  const fields = Object.entries(row).filter(([k]) => k !== "_src");
   const pairs = fields.map(([k, v]) => {
-    const vs = String(v ?? "");
-    const hl = terms.some(t => vs.toLowerCase().includes(t));
+    const vs  = String(v ?? "");
+    const hl  = terms.some(t => vs.toLowerCase().includes(t));
     return `<div class="fp">
       <span class="fk">${esc(k)}</span>
       <div class="fv ${hl ? "hl" : ""}">
@@ -598,14 +326,14 @@ function renderCard(row, terms) {
     </div>`;
   }).join("");
   return `<div class="card">
-    <div class="card-meta"><span class="card-src">📁 ${esc(row._table)}</span></div>
+    <div class="card-meta"><span class="card-src">📁 ${esc(row._src)}</span></div>
     <div class="card-fields">${pairs}</div>
   </div>`;
 }
 
 function renderPag() {
   const pages = Math.ceil(S.total / S.size);
-  const el = document.getElementById("pag");
+  const el    = document.getElementById("pag");
   if (pages <= 1) { el.innerHTML = ""; return; }
   let h = `<button class="pb" onclick="doSearch(${S.page - 1})" ${S.page === 0 ? "disabled" : ""}>←</button>`;
   for (let i = 0; i < pages; i++) {
@@ -631,10 +359,10 @@ function cpv(v) { navigator.clipboard.writeText(v).then(() => showToast("copié 
 function showToast(m, err = false) {
   const t = document.getElementById("toast");
   t.textContent = m; t.className = "toast" + (err ? " err" : "") + " show";
-  setTimeout(() => t.className = "toast", 2400);
+  setTimeout(() => t.className = "toast", 2600);
 }
-function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function trunc(s, n) { return s.length > n ? s.slice(0, n) + "…" : s; }
+function esc(s)    { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function trunc(s,n){ return s.length > n ? s.slice(0, n) + "…" : s; }
 </script>
 </body>
 </html>
