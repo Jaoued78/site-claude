@@ -177,12 +177,18 @@ const S = {
 // ── tables ────────────────────────────────────────────────────────────────────
 async function loadTables() {
   // liste via OpenAPI Supabase
-  const r = await fetch(`${SB_URL}/rest/v1/?apikey=${SB_KEY}`);
-  if (!r.ok) throw new Error(r.statusText);
-  const swagger = await r.json();
+  let swagger = null;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/?apikey=${SB_KEY}`);
+    if (r.ok) {
+      swagger = await r.json();
+    }
+  } catch(e) {
+    // réseau ou CORS — on continue avec 0 tables
+  }
 
   let names = [];
-  if (swagger.paths) {
+  if (swagger && swagger.paths) {
     names = Object.keys(swagger.paths)
       .map(p => p.replace(/^\//, ""))
       .filter(p => p && !p.startsWith("rpc/") && !p.includes("{"));
