@@ -270,27 +270,48 @@ const dz = document.getElementById("dropZone");
 const fi = document.getElementById("fileInput");
 dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); });
 dz.addEventListener("dragleave", () => dz.classList.remove("over"));
-dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); handleFiles([...e.dataTransfer.files]); });
+dz.addEventListener("drop", e => {
+  e.preventDefault(); dz.classList.remove("over");
+  // on lit les fichiers immédiatement depuis dataTransfer avant tout await
+  const files = [...e.dataTransfer.files];
+  handleFiles(files);
+});
 fi.addEventListener("change", () => { handleFiles([...fi.files]); fi.value = ""; });
 
-// lit un File en texte — file.text() avec fallback FileReader
+// lit un File en texte — 3 méthodes successives
 function readFileText(file) {
-  return file.text().catch(() => new Promise((res, rej) => {
-    const fr = new FileReader();
-    fr.onload = () => res(fr.result);
-    fr.onerror = () => rej(new Error("lecture impossible: " + fr.error));
-    fr.readAsText(file, "utf-8");
-  }));
+  // méthode 1 : file.text()
+  return file.text()
+    .catch(() => new Promise((res, rej) => {
+      // méthode 2 : FileReader readAsText
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result);
+      fr.onerror = () => rej(fr.error);
+      fr.readAsText(file, "utf-8");
+    }))
+    .catch(() => new Promise((res, rej) => {
+      // méthode 3 : FileReader readAsArrayBuffer + TextDecoder
+      const fr = new FileReader();
+      fr.onload = () => {
+        try { res(new TextDecoder("utf-8").decode(fr.result)); }
+        catch(e) { rej(e); }
+      };
+      fr.onerror = () => rej(new Error("impossible de lire le fichier — essaie via le bouton 📂 plutôt que glisser-déposer"));
+      fr.readAsArrayBuffer(file);
+    }));
 }
 
 async function handleFiles(files) {
   const prog = document.getElementById("upProg");
   prog.style.display = "block"; prog.value = 0;
+  // IMPORTANT: lancer tous les reads immédiatement (avant tout await)
+  // sinon le navigateur invalide les références fichiers après le premier await
+  const readPromises = files.map(f => readFileText(f));
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     prog.value = Math.round((i / files.length) * 80);
     try {
-      const text = await readFileText(file);
+      const text = await readPromises[i];
       const ext = file.name.split(".").pop().toLowerCase();
       let rows = [];
       if (ext === "csv" || ext === "txt") rows = parseCSV(text);
