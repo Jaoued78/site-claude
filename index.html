@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DB Search</title>
+<style>
+  :root{--bg:#0d0d0d;--surface:#161616;--border:#2a2a2a;--accent:#e8ff00;--text:#e0e0e0;--muted:#555;--danger:#ff4444;--ok:#44ff88}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono','Fira Code',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem}
+  header{width:100%;max-width:980px;margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:1rem;display:flex;justify-content:space-between;align-items:flex-end}
+  h1{font-size:1.4rem;color:var(--accent);letter-spacing:.1em}
+  .sub{color:var(--muted);font-size:.72rem;margin-top:.3rem}
+  .conn-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:.4rem;transition:background .3s}
+  .conn-dot.ok{background:var(--ok)}
+  .conn-label{font-size:.72rem;color:var(--muted)}
+
+  /* tables panel */
+  .panel{width:100%;max-width:980px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.9rem 1rem;margin-bottom:1rem}
+  .panel-title{font-size:.75rem;color:var(--accent);margin-bottom:.7rem;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:center}
+  .panel-title span{color:var(--muted);font-size:.68rem;font-weight:normal}
+  .table-grid{display:flex;flex-wrap:wrap;gap:.4rem}
+  .t-chip{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:.3rem .8rem;font-size:.75rem;color:var(--muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.35rem;font-family:inherit}
+  .t-chip:hover{border-color:var(--accent);color:var(--text)}
+  .t-chip.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+  .t-chip .cnt{font-size:.62rem;opacity:.7}
+  .no-tables{color:var(--muted);font-size:.78rem;padding:.5rem 0}
+
+  /* upload zone */
+  .upload-zone{width:100%;max-width:980px;border:2px dashed var(--border);border-radius:8px;padding:1.2rem;text-align:center;color:var(--muted);font-size:.8rem;margin-bottom:1rem;cursor:pointer;transition:border-color .2s,color .2s}
+  .upload-zone:hover,.upload-zone.over{border-color:var(--accent);color:var(--accent)}
+  #fileInput{display:none}
+  .up-progress{width:100%;height:3px;appearance:none;border:none;background:var(--border);border-radius:2px;margin-top:.6rem;display:none}
+  .up-progress::-webkit-progress-bar{background:var(--border)}
+  .up-progress::-webkit-progress-value{background:var(--accent)}
+
+  /* filters */
+  .filters{width:100%;max-width:980px;display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.8rem}
+  .fbtn{background:var(--surface);color:var(--muted);border:1px solid var(--border);padding:.28rem .7rem;font-size:.7rem;border-radius:20px;cursor:pointer;transition:all .15s;font-family:inherit}
+  .fbtn:hover{border-color:var(--accent);color:var(--text)}
+  .fbtn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+
+  /* search bar */
+  .search-bar{width:100%;max-width:980px;display:flex;gap:.5rem;margin-bottom:.8rem}
+  .search-bar input{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.75rem 1rem;font-family:inherit;font-size:.95rem;outline:none;border-radius:4px;transition:border-color .2s}
+  .search-bar input:focus{border-color:var(--accent)}
+  .search-bar input::placeholder{color:var(--muted)}
+  button.go{background:var(--accent);color:#000;border:none;padding:.75rem 1.5rem;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;border-radius:4px;white-space:nowrap}
+  button.go:hover{opacity:.88}
+  button.go:disabled{opacity:.35;cursor:not-allowed}
+
+  /* results */
+  .r-header{width:100%;max-width:980px;display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
+  .r-count{font-size:.78rem;color:var(--muted)}
+  .exp-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:.28rem .7rem;font-size:.7rem;border-radius:4px;cursor:pointer;font-family:inherit}
+  .exp-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+  .results{width:100%;max-width:980px;display:flex;flex-direction:column;gap:.5rem}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.85rem 1rem;transition:border-color .15s}
+  .card:hover{border-color:var(--accent)}
+  .card-meta{display:flex;justify-content:space-between;font-size:.66rem;color:var(--muted);margin-bottom:.55rem}
+  .card-src{color:var(--accent)}
+  .card-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:.4rem .9rem}
+  .fp{display:flex;flex-direction:column}
+  .fk{font-size:.63rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .fv{font-size:.84rem;color:var(--text);word-break:break-all;display:flex;align-items:center;gap:.2rem}
+  .fv.hl{color:var(--accent);font-weight:700}
+  .fv span{flex:1}
+  .cp{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.6rem;padding:0;flex-shrink:0}
+  .cp:hover{color:var(--accent)}
+
+  /* paging */
+  .pag{width:100%;max-width:980px;display:flex;justify-content:center;gap:.4rem;margin-top:1rem;flex-wrap:wrap}
+  .pb{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.28rem .62rem;font-size:.75rem;border-radius:4px;cursor:pointer;font-family:inherit}
+  .pb.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+  .pb:disabled{opacity:.3;cursor:not-allowed}
+
+  /* misc */
+  .empty{text-align:center;color:var(--muted);padding:2.5rem;font-size:.82rem}
+  .status-bar{width:100%;max-width:980px;margin-top:1rem;font-size:.68rem;color:var(--muted);border-top:1px solid var(--border);padding-top:.6rem;display:flex;justify-content:space-between}
+  .spinner{display:inline-block;width:10px;height:10px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:.3rem}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--accent);color:#000;padding:.5rem 1rem;border-radius:4px;font-size:.76rem;font-weight:700;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999}
+  .toast.show{opacity:1}
+  .toast.err{background:var(--danger);color:#fff}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚡ DB SEARCH</h1>
+    <div class="sub">Site Claude · Supabase · recherche multi-tables</div>
+  </div>
+  <div style="text-align:right">
+    <div><span class="conn-dot" id="connDot"></span><span class="conn-label" id="connLabel">connexion...</span></div>
+  </div>
+</header>
+
+<!-- Tables dispo -->
+<div class="panel">
+  <div class="panel-title">
+    TABLES
+    <span id="totalCount"></span>
+  </div>
+  <div class="table-grid" id="tableGrid">
+    <div class="no-tables"><span class="spinner"></span> chargement...</div>
+  </div>
+</div>
+
+<!-- Upload CSV/JSON dans Supabase -->
+<div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+  📂 importe une nouvelle DB (CSV) — glisse ici ou clique · crée la table automatiquement
+  <progress class="up-progress" id="upProg" value="0" max="100"></progress>
+</div>
+<input type="file" id="fileInput" multiple accept=".csv,.json,.jsonl">
+
+<!-- Filtres colonnes -->
+<div class="filters" id="filterBar">
+  <button class="fbtn active" onclick="setFilter('all',this)">TOUT</button>
+</div>
+
+<!-- Barre de recherche -->
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="nom, prénom, IP, discord ID, email..." autocomplete="off">
+  <button class="go" id="goBtn" onclick="doSearch(0)">SEARCH</button>
+</div>
+
+<div class="r-header" id="rHeader" style="display:none">
+  <span class="r-count" id="rCount"></span>
+  <button class="exp-btn" onclick="exportJSON()">↓ EXPORT JSON</button>
+</div>
+
+<div class="results" id="results">
+  <div class="empty">sélectionne des tables et tape une recherche.</div>
+</div>
+<div class="pag" id="pag"></div>
+
+<div class="status-bar">
+  <span id="stLeft">prêt.</span>
+  <span id="stRight"></span>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── config hardcodée ──────────────────────────────────────────────────────────
+const SB_URL = "https://amhrwbdjbfngidrzyjtw.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtaHJ3YmRqYmZuZ2lkcnp5anR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MDQ3MTgsImV4cCI6MjEwODk4MDcxOH0.FVOmChfjKVCJRGMDekoAKvGBKYMnj1PmBdSTm7OMSdI";
+
+const HEADERS = {
+  "apikey": SB_KEY,
+  "Authorization": `Bearer ${SB_KEY}`,
+  "Content-Type": "application/json"
+};
+
+// ── state ─────────────────────────────────────────────────────────────────────
+const S = {
+  tables: [],        // [{name, columns, count}]
+  active: [],        // tables cochées
+  activeField: "all",
+  query: "", page: 0, size: 25,
+  total: 0, results: [], allResults: []
+};
+
+// ── init ──────────────────────────────────────────────────────────────────────
+(async function init() {
+  try {
+    await loadTables();
+    document.getElementById("connDot").classList.add("ok");
+    document.getElementById("connLabel").textContent = "connecté";
+  } catch(e) {
+    document.getElementById("connLabel").textContent = "erreur connexion";
+    showToast("connexion Supabase échouée: " + e.message, true);
+  }
+})();
+
+// ── tables ────────────────────────────────────────────────────────────────────
+async function loadTables() {
+  // liste via OpenAPI Supabase
+  const r = await fetch(`${SB_URL}/rest/v1/?apikey=${SB_KEY}`);
+  if (!r.ok) throw new Error(r.statusText);
+  const swagger = await r.json();
+
+  let names = [];
+  if (swagger.paths) {
+    names = Object.keys(swagger.paths)
+      .map(p => p.replace(/^\//, ""))
+      .filter(p => p && !p.startsWith("rpc/") && !p.includes("{"));
+  }
+
+  if (!names.length) {
+    document.getElementById("tableGrid").innerHTML =
+      '<div class="no-tables">aucune table — importe un CSV ci-dessous pour commencer.</div>';
+    document.getElementById("stRight").textContent = "0 table";
+    return;
+  }
+
+  // colonnes + count en parallèle
+  S.tables = await Promise.all(names.map(async name => {
+    try {
+      const hr = await fetch(`${SB_URL}/rest/v1/${name}?limit=1`, {
+        headers: { ...HEADERS, "Prefer": "count=exact", "Range": "0-0" }
+      });
+      const cr = hr.headers.get("content-range") || "";
+      const count = parseInt(cr.split("/")[1] || "0") || 0;
+      const data = await hr.json();
+      const columns = Array.isArray(data) && data[0] ? Object.keys(data[0]) : [];
+      return { name, columns, count };
+    } catch {
+      return { name, columns: [], count: 0 };
+    }
+  }));
+
+  S.active = S.tables.map(t => t.name);
+  renderTableGrid();
+  renderFilterBar();
+
+  const total = S.tables.reduce((a, t) => a + t.count, 0);
+  document.getElementById("totalCount").textContent =
+    `${S.tables.length} table${S.tables.length > 1 ? "s" : ""} · ${total.toLocaleString()} entrées`;
+  document.getElementById("stRight").textContent = `${total.toLocaleString()} entrée(s) au total`;
+}
+
+function renderTableGrid() {
+  if (!S.tables.length) return;
+  document.getElementById("tableGrid").innerHTML = S.tables.map(t => `
+    <div class="t-chip ${S.active.includes(t.name) ? "active" : ""}"
+         onclick="toggleTable('${esc(t.name)}', this)">
+      ${esc(t.name)} <span class="cnt">${t.count.toLocaleString()}</span>
+    </div>`).join("");
+}
+
+function toggleTable(name, el) {
+  if (S.active.includes(name)) {
+    if (S.active.length === 1) return;
+    S.active = S.active.filter(n => n !== name);
+    el.classList.remove("active");
+  } else {
+    S.active.push(name);
+    el.classList.add("active");
+  }
+  if (S.query) doSearch(0);
+}
+
+// ── filtres colonnes ──────────────────────────────────────────────────────────
+function renderFilterBar() {
+  const cols = [...new Set(S.tables.flatMap(t => t.columns))].slice(0, 35);
+  const bar = document.getElementById("filterBar");
+  bar.innerHTML = `<button class="fbtn ${S.activeField === "all" ? "active" : ""}" onclick="setFilter('all',this)">TOUT</button>`;
+  cols.forEach(c => {
+    bar.innerHTML += `<button class="fbtn ${S.activeField === c ? "active" : ""}" onclick="setFilter('${esc(c)}',this)">${esc(c.toUpperCase())}</button>`;
+  });
+}
+
+function setFilter(f, el) {
+  S.activeField = f;
+  document.querySelectorAll(".fbtn").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+  if (S.query) doSearch(0);
+}
+
+// ── upload CSV → Supabase ─────────────────────────────────────────────────────
+const dz = document.getElementById("dropZone");
+const fi = document.getElementById("fileInput");
+dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); });
+dz.addEventListener("dragleave", () => dz.classList.remove("over"));
+dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); handleFiles([...e.dataTransfer.files]); });
+fi.addEventListener("change", () => { handleFiles([...fi.files]); fi.value = ""; });
+
+async function handleFiles(files) {
+  const prog = document.getElementById("upProg");
+  prog.style.display = "block"; prog.value = 0;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    prog.value = Math.round((i / files.length) * 80);
+    try {
+      const text = await file.text();
+      const ext = file.name.split(".").pop().toLowerCase();
+      let rows = [];
+      if (ext === "csv") rows = parseCSV(text);
+      else if (ext === "jsonl") rows = text.trim().split("\n").map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+      else if (ext === "json") { const p = JSON.parse(text); rows = Array.isArray(p) ? p : (p.data || p.rows || p.results || [p]); }
+      if (!rows.length) { showToast(`${file.name}: vide`, true); continue; }
+
+      // nom de table = nom de fichier sans extension, nettoyé
+      const tableName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
+      await upsertToSupabase(tableName, rows);
+      showToast(`✓ ${tableName} — ${rows.length} lignes importées`);
+    } catch(e) {
+      showToast(`erreur ${file.name}: ${e.message}`, true);
+    }
+  }
+  prog.value = 100;
+  setTimeout(() => { prog.style.display = "none"; prog.value = 0; }, 800);
+  await loadTables();
+}
+
+async function upsertToSupabase(tableName, rows) {
+  // insert par batch de 500
+  const batchSize = 500;
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const batch = rows.slice(i, i + batchSize);
+    const r = await fetch(`${SB_URL}/rest/v1/${tableName}`, {
+      method: "POST",
+      headers: { ...HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(batch)
+    });
+    if (!r.ok) {
+      const err = await r.text();
+      // si la table n'existe pas, on la crée via SQL RPC
+      if (r.status === 404 || err.includes("does not exist")) {
+        await createTableAndInsert(tableName, rows);
+        return;
+      }
+      throw new Error(`${r.status}: ${err}`);
+    }
+  }
+}
+
+async function createTableAndInsert(tableName, rows) {
+  // détermine les colonnes depuis la première ligne
+  const cols = Object.keys(rows[0]);
+  const colDefs = cols.map(c => `"${c.replace(/"/g,'""')}" text`).join(", ");
+  const createSQL = `CREATE TABLE IF NOT EXISTS public."${tableName}" (id bigserial primary key, ${colDefs});`;
+
+  const cr = await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
+    method: "POST",
+    headers: HEADERS,
+    body: JSON.stringify({ query: createSQL })
+  });
+
+  // fallback: essaie d'insérer directement (si table existait mais était vide)
+  const ir = await fetch(`${SB_URL}/rest/v1/${tableName}`, {
+    method: "POST",
+    headers: { ...HEADERS, "Prefer": "return=minimal" },
+    body: JSON.stringify(rows.slice(0, 500))
+  });
+  if (!ir.ok) throw new Error(await ir.text());
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = splitLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = splitLine(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] || "").trim(); });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+}
+
+function splitLine(line) {
+  const res = []; let cur = "", inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"' && !inQ) { inQ = true; continue; }
+    if (c === '"' && inQ) { if (line[i+1] === '"') { cur += '"'; i++; } else { inQ = false; } continue; }
+    if ((c === ',' || c === ';' || c === '\t') && !inQ) { res.push(cur); cur = ""; continue; }
+    cur += c;
+  }
+  res.push(cur); return res;
+}
+
+// ── search ────────────────────────────────────────────────────────────────────
+document.getElementById("searchInput").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(0); });
+
+async function doSearch(p = 0) {
+  const q = document.getElementById("searchInput").value.trim();
+  S.query = q; S.page = p;
+  if (!q) { renderResults(); return; }
+
+  document.getElementById("stLeft").innerHTML = '<span class="spinner"></span>recherche...';
+  document.getElementById("goBtn").disabled = true;
+
+  try {
+    const terms = q.toLowerCase().split(/\s+/);
+    const searches = S.active.map(async tname => {
+      const table = S.tables.find(t => t.name === tname);
+      if (!table || !table.columns.length) return [];
+      const cols = S.activeField === "all" ? table.columns : [S.activeField].filter(f => table.columns.includes(f));
+      if (!cols.length) return [];
+
+      // filtre OR sur toutes les colonnes pour le premier terme
+      const orFilter = cols.map(c => `${c}.ilike.*${terms[0]}*`).join(",");
+      let url = `${SB_URL}/rest/v1/${tname}?or=(${encodeURIComponent(orFilter)})&limit=10000`;
+      const r = await fetch(url, { headers: HEADERS });
+      if (!r.ok) return [];
+      let rows = await r.json();
+
+      // AND pour les termes suivants côté client
+      for (let i = 1; i < terms.length; i++) {
+        const t = terms[i];
+        rows = rows.filter(row => cols.some(c => String(row[c] ?? "").toLowerCase().includes(t)));
+      }
+      return rows.map(r => ({ _table: tname, ...r }));
+    });
+
+    const arrays = await Promise.all(searches);
+    S.allResults = arrays.flat();
+    S.total = S.allResults.length;
+    S.results = S.allResults.slice(p * S.size, (p + 1) * S.size);
+    renderResults();
+    document.getElementById("stLeft").textContent = `"${q}" — ${S.total} résultat(s)`;
+  } catch(e) {
+    document.getElementById("stLeft").textContent = "erreur: " + e.message;
+    showToast(e.message, true);
+  }
+  document.getElementById("goBtn").disabled = false;
+}
+
+// ── render ────────────────────────────────────────────────────────────────────
+function renderResults() {
+  const box = document.getElementById("results");
+  const hdr = document.getElementById("rHeader");
+  if (!S.query) {
+    box.innerHTML = '<div class="empty">sélectionne des tables et tape une recherche.</div>';
+    hdr.style.display = "none"; renderPag(); return;
+  }
+  hdr.style.display = "flex";
+  document.getElementById("rCount").textContent = `${S.total} résultat${S.total !== 1 ? "s" : ""}`;
+  if (!S.results.length) { box.innerHTML = '<div class="empty">aucun résultat.</div>'; renderPag(); return; }
+  const terms = S.query.toLowerCase().split(/\s+/);
+  box.innerHTML = S.results.map(row => renderCard(row, terms)).join("");
+  renderPag();
+}
+
+function renderCard(row, terms) {
+  const fields = Object.entries(row).filter(([k]) => !k.startsWith("_"));
+  const pairs = fields.map(([k, v]) => {
+    const vs = String(v ?? "");
+    const hl = terms.some(t => vs.toLowerCase().includes(t));
+    return `<div class="fp">
+      <span class="fk">${esc(k)}</span>
+      <div class="fv ${hl ? "hl" : ""}">
+        <span>${esc(trunc(vs, 85))}</span>
+        <button class="cp" onclick="cpv('${vs.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')" title="copier">⎘</button>
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="card">
+    <div class="card-meta"><span class="card-src">📁 ${esc(row._table)}</span></div>
+    <div class="card-fields">${pairs}</div>
+  </div>`;
+}
+
+function renderPag() {
+  const pages = Math.ceil(S.total / S.size);
+  const el = document.getElementById("pag");
+  if (pages <= 1) { el.innerHTML = ""; return; }
+  let h = `<button class="pb" onclick="doSearch(${S.page - 1})" ${S.page === 0 ? "disabled" : ""}>←</button>`;
+  for (let i = 0; i < pages; i++) {
+    if (pages > 10 && Math.abs(i - S.page) > 2 && i !== 0 && i !== pages - 1) {
+      if (i === 1 || i === pages - 2) h += '<span style="color:var(--muted);padding:0 .3rem">…</span>';
+      continue;
+    }
+    h += `<button class="pb ${i === S.page ? "active" : ""}" onclick="doSearch(${i})">${i + 1}</button>`;
+  }
+  h += `<button class="pb" onclick="doSearch(${S.page + 1})" ${S.page >= pages - 1 ? "disabled" : ""}>→</button>`;
+  el.innerHTML = h;
+}
+
+// ── export ────────────────────────────────────────────────────────────────────
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(S.allResults, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `export_${Date.now()}.json`; a.click();
+}
+
+// ── utils ─────────────────────────────────────────────────────────────────────
+function cpv(v) { navigator.clipboard.writeText(v).then(() => showToast("copié !")).catch(() => showToast("erreur copie", true)); }
+function showToast(m, err = false) {
+  const t = document.getElementById("toast");
+  t.textContent = m; t.className = "toast" + (err ? " err" : "") + " show";
+  setTimeout(() => t.className = "toast", 2400);
+}
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function trunc(s, n) { return s.length > n ? s.slice(0, n) + "…" : s; }
+</script>
+</body>
+</html>
