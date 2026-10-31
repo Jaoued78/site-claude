@@ -113,7 +113,7 @@
   📂 importe une nouvelle DB (CSV) — glisse ici ou clique · crée la table automatiquement
   <progress class="up-progress" id="upProg" value="0" max="100"></progress>
 </div>
-<input type="file" id="fileInput" multiple accept=".csv,.json,.jsonl">
+<input type="file" id="fileInput" multiple accept=".csv,.json,.jsonl,.txt">
 
 <!-- Filtres colonnes -->
 <div class="filters" id="filterBar">
@@ -277,7 +277,7 @@ async function handleFiles(files) {
       const text = await file.text();
       const ext = file.name.split(".").pop().toLowerCase();
       let rows = [];
-      if (ext === "csv") rows = parseCSV(text);
+      if (ext === "csv" || ext === "txt") rows = parseCSV(text);
       else if (ext === "jsonl") rows = text.trim().split("\n").map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
       else if (ext === "json") { const p = JSON.parse(text); rows = Array.isArray(p) ? p : (p.data || p.rows || p.results || [p]); }
       if (!rows.length) { showToast(`${file.name}: vide`, true); continue; }
@@ -287,7 +287,7 @@ async function handleFiles(files) {
       await upsertToSupabase(tableName, rows);
       showToast(`✓ ${tableName} — ${rows.length} lignes importées`);
     } catch(e) {
-      showToast(`erreur ${file.name}: ${e.message}`, true);
+      showToast(`erreur ${file.name}: ${e.message.includes('permission') ? 'copie le fichier sur le Bureau et réessaie' : e.message}`, true);
     }
   }
   prog.value = 100;
