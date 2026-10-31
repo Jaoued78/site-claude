@@ -273,6 +273,16 @@ dz.addEventListener("dragleave", () => dz.classList.remove("over"));
 dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); handleFiles([...e.dataTransfer.files]); });
 fi.addEventListener("change", () => { handleFiles([...fi.files]); fi.value = ""; });
 
+// lit un File en texte — file.text() avec fallback FileReader
+function readFileText(file) {
+  return file.text().catch(() => new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(new Error("lecture impossible: " + fr.error));
+    fr.readAsText(file, "utf-8");
+  }));
+}
+
 async function handleFiles(files) {
   const prog = document.getElementById("upProg");
   prog.style.display = "block"; prog.value = 0;
@@ -280,20 +290,20 @@ async function handleFiles(files) {
     const file = files[i];
     prog.value = Math.round((i / files.length) * 80);
     try {
-      const text = await file.text();
+      const text = await readFileText(file);
       const ext = file.name.split(".").pop().toLowerCase();
       let rows = [];
       if (ext === "csv" || ext === "txt") rows = parseCSV(text);
       else if (ext === "jsonl") rows = text.trim().split("\n").map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
       else if (ext === "json") { const p = JSON.parse(text); rows = Array.isArray(p) ? p : (p.data || p.rows || p.results || [p]); }
-      if (!rows.length) { showToast(`${file.name}: vide`, true); continue; }
+      if (!rows.length) { showToast(`${file.name}: fichier vide ou format non reconnu`, true); continue; }
 
       // nom de table = nom de fichier sans extension, nettoyé
       const tableName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
       await upsertToSupabase(tableName, rows);
       showToast(`✓ ${tableName} — ${rows.length} lignes importées`);
     } catch(e) {
-      showToast(`erreur ${file.name}: ${e.message.includes('permission') ? 'copie le fichier sur le Bureau et réessaie' : e.message}`, true);
+      showToast(`erreur ${file.name}: ${e.message}`, true);
     }
   }
   prog.value = 100;
