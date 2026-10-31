@@ -278,57 +278,120 @@ dz.addEventListener("drop", e => {
 });
 fi.addEventListener("change", () => { handleFiles([...fi.files]); fi.value = ""; });
 
-// lit un File en texte — 3 méthodes successives
-function readFileText(file) {
-  // méthode 1 : file.text()
-  return file.text()
-    .catch(() => new Promise((res, rej) => {
-      // méthode 2 : FileReader readAsText
-      const fr = new FileReader();
-      fr.onload = () => res(fr.result);
-      fr.onerror = () => rej(fr.error);
-      fr.readAsText(file, "utf-8");
-    }))
-    .catch(e2 => new Promise((res, rej) => {
-      // méthode 3 : FileReader readAsArrayBuffer + TextDecoder
-      const fr = new FileReader();
-      fr.onload = () => {
-        try { res(new TextDecoder("utf-8").decode(fr.result)); }
-        catch(e3) { rej(new Error(`décode échoué: ${e3.message}`)); }
-      };
-      fr.onerror = () => rej(new Error(`3 méthodes échouées — vérifie que le fichier n'est pas ouvert ailleurs, pas dans OneDrive hors-ligne, et pas bloqué par l'antivirus. Erreur: ${fr.error?.message || e2?.message}`));
-      fr.readAsArrayBuffer(file);
-    }));
+// stream un File CSV/TXT par chunks — ne charge jamais tout en RAM
+// callback(rows, headers, totalInserted) appelé par batch de CHUNK_LINES lignes
+const CHUNK_BYTES = 32 * 1024 * 1024; // 32 Mo par lecture disque
+const CHUNK_LINES = 2000;              // lignes par insert Supabase
+
+async function streamCSVToSupabase(file, tableName, onProgress) {
+  const decoder = new TextDecoder("utf-8");
+  let offset = 0;
+  let leftover = "";
+  let headers = null;
+  let totalInserted = 0;
+  let tableCreated = false;
+
+  while (offset < file.size) {
+    const slice = file.slice(offset, offset + CHUNK_BYTES);
+    const buf = await slice.arrayBuffer();
+    const chunk = leftover + decoder.decode(buf, { stream: true });
+    offset += CHUNK_BYTES;
+
+    const lines = chunk.split(/\r?\n/);
+    // garder la dernière ligne incomplète pour le prochain chunk
+    leftover = offset < file.size ? lines.pop() : "";
+
+    if (!headers) {
+      headers = splitLine(lines.shift());
+      if (!headers.length) throw new Error("impossible de lire les headers");
+    }
+
+    // parser les lignes en objets
+    let rows = [];
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const vals = splitLine(line);
+      const obj = {};
+      headers.forEach((h, i) => { obj[h.trim()] = (vals[i] ?? "").trim(); });
+      rows.push(obj);
+
+      if (rows.length >= CHUNK_LINES) {
+        if (!tableCreated) { await ensureTable(tableName, rows[0]); tableCreated = true; }
+        await insertBatch(tableName, rows);
+        totalInserted += rows.length;
+        onProgress(totalInserted, file.size, offset);
+        rows = [];
+      }
+    }
+    // flush le reste du chunk
+    if (rows.length) {
+      if (!tableCreated) { await ensureTable(tableName, rows[0]); tableCreated = true; }
+      await insertBatch(tableName, rows);
+      totalInserted += rows.length;
+      onProgress(totalInserted, file.size, offset);
+    }
+  }
+  return totalInserted;
+}
+
+async function ensureTable(tableName, sampleRow) {
+  const cols = Object.keys(sampleRow);
+  const colDefs = cols.map(c => `"${c.replace(/"/g,'""')}" text`).join(", ");
+  const sql = `CREATE TABLE IF NOT EXISTS public."${tableName}" (id bigserial primary key, ${colDefs});`;
+  // tente via RPC exec_sql (peut ne pas exister)
+  await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
+    method: "POST", headers: HEADERS, body: JSON.stringify({ query: sql })
+  }).catch(() => {});
+}
+
+async function insertBatch(tableName, rows) {
+  const r = await fetch(`${SB_URL}/rest/v1/${tableName}`, {
+    method: "POST",
+    headers: { ...HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(rows)
+  });
+  if (!r.ok) {
+    const err = await r.text();
+    throw new Error(`insert échoué ${r.status}: ${err.slice(0, 200)}`);
+  }
 }
 
 async function handleFiles(files) {
   const prog = document.getElementById("upProg");
   prog.style.display = "block"; prog.value = 0;
-  // IMPORTANT: lancer tous les reads immédiatement (avant tout await)
-  // sinon le navigateur invalide les références fichiers après le premier await
-  const readPromises = files.map(f => readFileText(f));
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    prog.value = Math.round((i / files.length) * 80);
-    try {
-      const text = await readPromises[i];
-      const ext = file.name.split(".").pop().toLowerCase();
-      let rows = [];
-      if (ext === "csv" || ext === "txt") rows = parseCSV(text);
-      else if (ext === "jsonl") rows = text.trim().split("\n").map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-      else if (ext === "json") { const p = JSON.parse(text); rows = Array.isArray(p) ? p : (p.data || p.rows || p.results || [p]); }
-      if (!rows.length) { showToast(`${file.name}: fichier vide ou format non reconnu`, true); continue; }
 
-      // nom de table = nom de fichier sans extension, nettoyé
-      const tableName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
-      await upsertToSupabase(tableName, rows);
-      showToast(`✓ ${tableName} — ${rows.length} lignes importées`);
+  for (const file of files) {
+    const ext = file.name.split(".").pop().toLowerCase();
+    const tableName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
+    document.getElementById("stLeft").textContent = `import ${file.name} (${(file.size/1e6).toFixed(0)} Mo)…`;
+
+    try {
+      if (ext === "csv" || ext === "txt") {
+        // streaming pour gros fichiers
+        const total = await streamCSVToSupabase(file, tableName, (inserted, fileSize, bytesRead) => {
+          prog.value = Math.round((bytesRead / fileSize) * 95);
+          document.getElementById("stLeft").textContent = `${tableName}: ${inserted.toLocaleString()} lignes insérées…`;
+        });
+        showToast(`✓ ${tableName} — ${total.toLocaleString()} lignes importées`);
+
+      } else {
+        // json/jsonl : lire en entier (fichiers normalement plus petits)
+        const text = await file.text();
+        let rows = [];
+        if (ext === "jsonl") rows = text.trim().split("\n").map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+        else { const p = JSON.parse(text); rows = Array.isArray(p) ? p : (p.data || p.rows || p.results || [p]); }
+        if (!rows.length) { showToast(`${file.name}: vide`, true); continue; }
+        await upsertToSupabase(tableName, rows);
+        showToast(`✓ ${tableName} — ${rows.length} lignes importées`);
+      }
     } catch(e) {
       showToast(`erreur ${file.name}: ${e.message}`, true);
     }
   }
+
   prog.value = 100;
   setTimeout(() => { prog.style.display = "none"; prog.value = 0; }, 800);
+  document.getElementById("stLeft").textContent = "prêt.";
   await loadTables();
 }
 
