@@ -8,7 +8,7 @@
   :root{--bg:#0d0d0d;--surface:#161616;--border:#2a2a2a;--accent:#e8ff00;--text:#e0e0e0;--muted:#555;--danger:#ff4444;--ok:#44ff88}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono','Fira Code',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem}
-  header{width:100%;max-width:980px;margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:1rem;display:flex;justify-content:space-between;align-items:flex-end}
+  header{width:100%;max-width:980px;margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:1rem;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:.5rem}
   h1{font-size:1.4rem;color:var(--accent);letter-spacing:.1em}
   .sub{color:var(--muted);font-size:.72rem;margin-top:.3rem}
 
@@ -16,8 +16,7 @@
   .panel-title{font-size:.75rem;color:var(--accent);margin-bottom:.7rem;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:center}
   .panel-title span{color:var(--muted);font-size:.68rem;font-weight:normal}
   .table-grid{display:flex;flex-wrap:wrap;gap:.4rem}
-  .t-chip{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:.3rem .8rem;font-size:.75rem;color:var(--muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.35rem;font-family:inherit}
-  .t-chip:hover{border-color:var(--accent);color:var(--text)}
+  .t-chip{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:.3rem .8rem;font-size:.75rem;color:var(--muted);cursor:default;display:flex;align-items:center;gap:.35rem;font-family:inherit}
   .t-chip.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
   .t-chip .cnt{font-size:.62rem;opacity:.7}
   .no-tables{color:var(--muted);font-size:.78rem;padding:.5rem 0}
@@ -28,6 +27,7 @@
   .up-progress{width:100%;height:3px;appearance:none;border:none;background:var(--border);border-radius:2px;margin-top:.6rem;display:none}
   .up-progress::-webkit-progress-bar{background:var(--border)}
   .up-progress::-webkit-progress-value{background:var(--accent)}
+  .up-log{width:100%;max-width:980px;font-size:.7rem;color:var(--muted);margin-bottom:.5rem;min-height:1rem;white-space:pre-wrap;word-break:break-all}
 
   .search-bar{width:100%;max-width:980px;display:flex;gap:.5rem;margin-bottom:.8rem}
   .search-bar input{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.75rem 1rem;font-family:inherit;font-size:.95rem;outline:none;border-radius:4px;transition:border-color .2s}
@@ -47,12 +47,12 @@
   .card:hover{border-color:var(--accent)}
   .card-meta{display:flex;justify-content:space-between;font-size:.66rem;color:var(--muted);margin-bottom:.55rem}
   .card-src{color:var(--accent)}
-  .card-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:.4rem .9rem}
-  .fp{display:flex;flex-direction:column}
-  .fk{font-size:.63rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-  .fv{font-size:.84rem;color:var(--text);word-break:break-all;display:flex;align-items:center;gap:.2rem}
-  .fv.hl{color:var(--accent);font-weight:700}
-  .fv span{flex:1}
+  .card-row{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.4rem}
+  .card-label{font-size:.63rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .card-line{font-size:.84rem;color:var(--text);word-break:break-all;display:flex;align-items:center;gap:.3rem}
+  .card-line.hl{color:var(--accent);font-weight:700}
+  .card-line.next{color:var(--ok);border-left:2px solid var(--ok);padding-left:.5rem;margin-top:.15rem}
+  .card-divider{border:none;border-top:1px solid var(--border);margin:.5rem 0}
   .cp{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.6rem;padding:0;flex-shrink:0}
   .cp:hover{color:var(--accent)}
 
@@ -68,6 +68,7 @@
   .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--accent);color:#000;padding:.5rem 1rem;border-radius:4px;font-size:.76rem;font-weight:700;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999}
   .toast.show{opacity:1}
   .toast.err{background:var(--danger);color:#fff}
+  .toast.ok{background:var(--ok);color:#000}
 </style>
 </head>
 <body>
@@ -75,30 +76,31 @@
 <header>
   <div>
     <h1>⚡ DB SEARCH</h1>
-    <div class="sub">recherche locale · aucune donnée envoyée en ligne</div>
+    <div class="sub">supabase · upload TXT · recherche globale</div>
   </div>
   <div style="text-align:right;font-size:.68rem;color:var(--muted)" id="memInfo"></div>
 </header>
 
 <div class="panel">
   <div class="panel-title">
-    FICHIERS CHARGÉS
-    <span id="totalCount"></span>
+    FICHIERS EN BASE
+    <span id="totalCount"><span class="spinner"></span></span>
   </div>
   <div class="table-grid" id="tableGrid">
-    <div class="no-tables">aucun fichier — charge un CSV ou TXT ci-dessous.</div>
+    <div class="no-tables">chargement…</div>
   </div>
 </div>
 
 <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-  📂 charge tes fichiers (CSV, TXT, JSON, JSONL) — glisse ici ou clique<br>
-  <span style="font-size:.7rem;opacity:.6">tout reste dans ton navigateur, rien n'est envoyé</span>
+  📂 upload TXT — glisse ici ou clique<br>
+  <span style="font-size:.7rem;opacity:.6">fichiers texte stockés dans supabase, indexés pour la recherche</span>
   <progress class="up-progress" id="upProg" value="0" max="100"></progress>
 </div>
-<input type="file" id="fileInput" multiple accept=".csv,.json,.jsonl,.txt">
+<input type="file" id="fileInput" multiple accept=".txt,text/plain">
+<div class="up-log" id="upLog"></div>
 
 <div class="search-bar">
-  <input type="text" id="searchInput" placeholder="email, nom, IP, discord ID..." autocomplete="off">
+  <input type="text" id="searchInput" placeholder="nom, discord ID, licence, IP..." autocomplete="off">
   <button class="go" id="goBtn" onclick="doSearch(0)">SEARCH</button>
 </div>
 
@@ -119,105 +121,206 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ── state ─────────────────────────────────────────────────────────────────────
-const DB = [];   // [{name, rows: [{...}]}]
-const S  = { query: "", page: 0, size: 25, total: 0, allResults: [], results: [] };
+// ── config supabase ────────────────────────────────────────────────────────────
+const SUPA_URL    = "https://amhrwbdjbfngidrzyjtw.supabase.co";
+const SUPA_ANON   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtaHJ3YmRqYmZuZ2lkcnp5anR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MDQ3MTgsImV4cCI6MjEwODk4MDcxOH0.FVOmChfjKVCJRGMDekoAKvGBKYMnj1PmBdSTm7OMSdI";
+const BUCKET      = "uploads";
+const PAGE_SIZE   = 25;
 
-// ── upload ────────────────────────────────────────────────────────────────────
+// ── state ──────────────────────────────────────────────────────────────────────
+let currentPage    = 0;
+let lastTotal      = 0;
+let lastResults    = [];
+let lastQuery      = "";
+
+// ── helpers fetch supabase ─────────────────────────────────────────────────────
+function sbHeaders(extra = {}) {
+  return {
+    "apikey":        SUPA_ANON,
+    "Authorization": "Bearer " + SUPA_ANON,
+    "Content-Type":  "application/json",
+    ...extra
+  };
+}
+
+async function sbGet(path, params = {}) {
+  const url = new URL(SUPA_URL + path);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const r = await fetch(url.toString(), { headers: sbHeaders({ "Prefer": "count=exact" }) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+  const total = parseInt(r.headers.get("content-range")?.split("/")[1] ?? "-1", 10);
+  const data  = await r.json();
+  return { data, total };
+}
+
+async function sbPost(path, body) {
+  const r = await fetch(SUPA_URL + path, {
+    method:  "POST",
+    headers: sbHeaders({ "Prefer": "return=minimal" }),
+    body:    JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+  return r;
+}
+
+// ── charger liste des fichiers ─────────────────────────────────────────────────
+async function loadFileList() {
+  try {
+    const { data } = await sbGet("/rest/v1/records", {
+      select: "source_file",
+      order:  "source_file.asc"
+    });
+    // déduplique
+    const files  = {};
+    for (const row of data) {
+      files[row.source_file] = (files[row.source_file] || 0) + 1;
+    }
+    renderFileList(files);
+  } catch(e) {
+    document.getElementById("tableGrid").innerHTML =
+      `<div class="no-tables" style="color:var(--danger)">erreur chargement: ${esc(e.message)}</div>`;
+    document.getElementById("totalCount").textContent = "";
+  }
+}
+
+// count exact par fichier via une requête groupée
+async function loadFileListWithCounts() {
+  try {
+    // On récupère le count total et les fichiers distincts
+    const r = await fetch(
+      `${SUPA_URL}/rest/v1/records?select=source_file&order=source_file.asc`,
+      { headers: { ...sbHeaders(), "Prefer": "count=exact", "Range": "0-0" } }
+    );
+    const totalRows = parseInt(r.headers.get("content-range")?.split("/")[1] ?? "0", 10);
+
+    // fetch tous les source_file (max 10000 lignes pour l'affichage des chips)
+    const { data } = await sbGet("/rest/v1/records", {
+      select: "source_file",
+      order:  "source_file.asc",
+      limit:  "10000"
+    });
+
+    const files = {};
+    for (const row of data) {
+      files[row.source_file] = (files[row.source_file] || 0) + 1;
+    }
+    renderFileList(files, totalRows);
+  } catch(e) {
+    document.getElementById("tableGrid").innerHTML =
+      `<div class="no-tables" style="color:var(--danger)">erreur: ${esc(e.message)}</div>`;
+    document.getElementById("totalCount").textContent = "";
+  }
+}
+
+function renderFileList(files, totalRows) {
+  const grid    = document.getElementById("tableGrid");
+  const entries = Object.entries(files);
+  if (!entries.length) {
+    grid.innerHTML = '<div class="no-tables">aucun fichier en base — upload un TXT.</div>';
+    document.getElementById("totalCount").textContent = "";
+    document.getElementById("stRight").textContent = "";
+    return;
+  }
+  grid.innerHTML = entries.map(([name, cnt]) =>
+    `<div class="t-chip active">
+      ${esc(name)} <span class="cnt">${cnt.toLocaleString()}</span>
+    </div>`
+  ).join("");
+  const total = totalRows ?? entries.reduce((a, [, c]) => a + c, 0);
+  document.getElementById("totalCount").textContent =
+    `${entries.length} fichier${entries.length > 1 ? "s" : ""} · ${total.toLocaleString()} lignes`;
+  document.getElementById("stRight").textContent = `${total.toLocaleString()} lignes en base`;
+  document.getElementById("memInfo").textContent  = `${entries.length} sources`;
+}
+
+// ── upload & ingest ────────────────────────────────────────────────────────────
 const dz = document.getElementById("dropZone");
 const fi = document.getElementById("fileInput");
-dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); });
+dz.addEventListener("dragover",  e => { e.preventDefault(); dz.classList.add("over"); });
 dz.addEventListener("dragleave", () => dz.classList.remove("over"));
-dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); handleFiles([...e.dataTransfer.files]); });
-fi.addEventListener("change", () => { handleFiles([...fi.files]); fi.value = ""; });
+dz.addEventListener("drop",      e => { e.preventDefault(); dz.classList.remove("over"); handleFiles([...e.dataTransfer.files]); });
+fi.addEventListener("change",    () => { handleFiles([...fi.files]); fi.value = ""; });
 
 async function handleFiles(files) {
   const prog = document.getElementById("upProg");
-  prog.style.display = "block"; prog.value = 0;
+  const log  = document.getElementById("upLog");
+  prog.style.display = "block";
+  prog.value = 0;
+  log.textContent = "";
 
-  for (let fi = 0; fi < files.length; fi++) {
-    const file = files[fi];
-    document.getElementById("stLeft").textContent = `lecture ${file.name}…`;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    log.textContent = `[${i+1}/${files.length}] ${file.name} — lecture…`;
+    document.getElementById("stLeft").textContent = `upload ${file.name}…`;
+
     try {
-      const rows = await parseFile(file);
-      if (!rows.length) { showToast(`${file.name}: vide ou non parsable`, true); continue; }
-      // remplace si déjà chargé
-      const existing = DB.findIndex(d => d.name === file.name);
-      if (existing >= 0) DB[existing] = { name: file.name, rows };
-      else DB.push({ name: file.name, rows });
-      showToast(`✓ ${file.name} — ${rows.length.toLocaleString()} lignes`);
+      // 1. lire le fichier texte
+      const text  = await readFileAsText(file);
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (!lines.length) { showToast(`${file.name}: vide`, true); continue; }
+
+      // 2. upload dans storage supabase
+      log.textContent = `[${i+1}/${files.length}] ${file.name} — upload storage…`;
+      const storePath = `${Date.now()}_${file.name}`;
+      const uploadRes = await fetch(
+        `${SUPA_URL}/storage/v1/object/${BUCKET}/${encodeURIComponent(storePath)}`,
+        {
+          method:  "POST",
+          headers: {
+            "apikey":        SUPA_ANON,
+            "Authorization": "Bearer " + SUPA_ANON,
+            "Content-Type":  "text/plain; charset=utf-8",
+            "x-upsert":      "true"
+          },
+          body: file
+        }
+      );
+      if (!uploadRes.ok) {
+        const err = await uploadRes.text();
+        throw new Error(`storage: ${err}`);
+      }
+
+      // 3. supprimer les anciennes lignes de ce fichier si déjà présent
+      log.textContent = `[${i+1}/${files.length}] ${file.name} — nettoyage anciens enregistrements…`;
+      await fetch(
+        `${SUPA_URL}/rest/v1/records?source_file=eq.${encodeURIComponent(file.name)}`,
+        { method: "DELETE", headers: sbHeaders() }
+      );
+
+      // 4. insérer les lignes par batch de 500
+      log.textContent = `[${i+1}/${files.length}] ${file.name} — ingest ${lines.length.toLocaleString()} lignes…`;
+      const BATCH = 500;
+      let inserted = 0;
+      for (let b = 0; b < lines.length; b += BATCH) {
+        const chunk = lines.slice(b, b + BATCH);
+        const rows  = chunk.map((line, idx) => ({
+          source_file: file.name,
+          row_index:   b + idx,
+          data:        { line },
+          search_text: line
+        }));
+        await sbPost("/rest/v1/records", rows);
+        inserted += chunk.length;
+        prog.value = Math.round(((i + (inserted / lines.length)) / files.length) * 100);
+        log.textContent = `[${i+1}/${files.length}] ${file.name} — ingest ${inserted.toLocaleString()}/${lines.length.toLocaleString()} lignes…`;
+      }
+
+      showToast(`✓ ${file.name} — ${lines.length.toLocaleString()} lignes indexées`, false, true);
+      log.textContent = `✓ ${file.name} — ${lines.length.toLocaleString()} lignes en base.`;
+
     } catch(e) {
       showToast(`erreur ${file.name}: ${e.message}`, true);
+      log.textContent = `✗ ${file.name}: ${e.message}`;
+      console.error(e);
     }
-    prog.value = Math.round(((fi + 1) / files.length) * 100);
+
+    prog.value = Math.round(((i + 1) / files.length) * 100);
   }
 
   prog.value = 100;
-  setTimeout(() => { prog.style.display = "none"; prog.value = 0; }, 600);
+  setTimeout(() => { prog.style.display = "none"; prog.value = 0; }, 800);
   document.getElementById("stLeft").textContent = "prêt.";
-  renderTableGrid();
-}
-
-// ── parsers ───────────────────────────────────────────────────────────────────
-async function parseFile(file) {
-  const text = await readFileAsText(file);
-  const ext  = file.name.split(".").pop().toLowerCase();
-
-  if (ext === "json") {
-    const p = JSON.parse(text);
-    return Array.isArray(p) ? p : (p.data || p.rows || p.results || [p]);
-  }
-  if (ext === "jsonl") {
-    return text.trim().split("\n").map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-  }
-  // CSV / TXT
-  return parseTextFile(text);
-}
-
-function parseTextFile(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (!lines.length) return [];
-
-  // détecte format "Key: value - Key: value"
-  if (isKVFormat(lines[0])) {
-    return lines.map(parseKVLine).filter(Boolean);
-  }
-
-  // CSV classique (virgule, point-virgule ou tab)
-  const headers = splitCSV(lines[0]);
-  return lines.slice(1).map(line => {
-    const vals = splitCSV(line);
-    const obj  = {};
-    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] ?? "").trim(); });
-    return obj;
-  }).filter(r => Object.values(r).some(v => v));
-}
-
-function isKVFormat(line) {
-  return /^\s*\w[\w ]*:\s*.+\s+-\s+\w[\w ]*:/.test(line);
-}
-
-function parseKVLine(line) {
-  const obj   = {};
-  const parts = line.split(/ - (?=[\w][\w ]*: )/);
-  for (const part of parts) {
-    const idx = part.indexOf(": ");
-    if (idx === -1) continue;
-    obj[part.slice(0, idx).trim()] = part.slice(idx + 2).trim();
-  }
-  return Object.keys(obj).length ? obj : null;
-}
-
-function splitCSV(line) {
-  const res = []; let cur = "", inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"' && !inQ)  { inQ = true; continue; }
-    if (c === '"' && inQ)   { if (line[i+1] === '"') { cur += '"'; i++; } else { inQ = false; } continue; }
-    if ((c === ',' || c === ';' || c === '\t') && !inQ) { res.push(cur); cur = ""; continue; }
-    cur += c;
-  }
-  res.push(cur); return res;
+  await loadFileListWithCounts();
 }
 
 function readFileAsText(file) {
@@ -229,140 +332,190 @@ function readFileAsText(file) {
   });
 }
 
-// ── render fichiers ───────────────────────────────────────────────────────────
-function renderTableGrid() {
-  const grid = document.getElementById("tableGrid");
-  if (!DB.length) {
-    grid.innerHTML = '<div class="no-tables">aucun fichier chargé.</div>';
-    document.getElementById("totalCount").textContent = "";
-    document.getElementById("stRight").textContent = "";
-    return;
-  }
-  grid.innerHTML = DB.map((d, i) => `
-    <div class="t-chip active" onclick="removeDB(${i})" title="clic pour retirer">
-      ${esc(d.name)} <span class="cnt">${d.rows.length.toLocaleString()} ✕</span>
-    </div>`).join("");
-  const total = DB.reduce((a, d) => a + d.rows.length, 0);
-  document.getElementById("totalCount").textContent =
-    `${DB.length} fichier${DB.length > 1 ? "s" : ""} · ${total.toLocaleString()} lignes`;
-  document.getElementById("stRight").textContent = `${total.toLocaleString()} lignes en mémoire`;
-  // estimation RAM (JSON.stringify ~= bytes)
-  try {
-    const mb = (JSON.stringify(DB).length / 1e6).toFixed(1);
-    document.getElementById("memInfo").textContent = `~${mb} Mo en RAM`;
-  } catch {}
-}
-
-function removeDB(i) {
-  DB.splice(i, 1);
-  renderTableGrid();
-  if (S.query) doSearch(0);
-}
-
 // ── search ─────────────────────────────────────────────────────────────────────
-document.getElementById("searchInput").addEventListener("keydown", e => { if (e.key === "Enter") doSearch(0); });
+document.getElementById("searchInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") doSearch(0);
+});
 
-function doSearch(p = 0) {
+async function doSearch(page = 0) {
   const q = document.getElementById("searchInput").value.trim();
-  S.query = q; S.page = p;
-  if (!q || !DB.length) { renderResults(); return; }
+  if (!q) return;
 
-  document.getElementById("stLeft").innerHTML = '<span class="spinner"></span>recherche...';
+  lastQuery   = q;
+  currentPage = page;
+
+  document.getElementById("stLeft").innerHTML = '<span class="spinner"></span>recherche…';
   document.getElementById("goBtn").disabled = true;
+  document.getElementById("rHeader").style.display = "none";
 
-  // micro-délai pour laisser le spinner s'afficher
-  setTimeout(() => {
+  try {
+    const offset = page * PAGE_SIZE;
+
+    // recherche sur search_text ilike
+    const encoded = encodeURIComponent(`%${q}%`);
+    const url = `${SUPA_URL}/rest/v1/records` +
+      `?search_text=ilike.${encoded}` +
+      `&order=source_file.asc,row_index.asc` +
+      `&limit=${PAGE_SIZE}` +
+      `&offset=${offset}` +
+      `&select=id,source_file,row_index,search_text`;
+
+    const r = await fetch(url, {
+      headers: { ...sbHeaders(), "Prefer": "count=exact" }
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+
+    const totalHeader = r.headers.get("content-range");
+    const total = totalHeader ? parseInt(totalHeader.split("/")[1], 10) : 0;
+    const hits  = await r.json();
+
+    // Pour chaque hit, on cherche la ligne suivante (row_index + 1)
+    const enriched = await enrichWithNextLines(hits);
+
+    lastTotal   = total;
+    lastResults = enriched;
+
+    renderResults(q, enriched, total, page);
+    document.getElementById("stLeft").textContent = `"${q}" — ${total.toLocaleString()} résultat(s)`;
+
+  } catch(e) {
+    document.getElementById("stLeft").textContent = "erreur: " + e.message;
+    console.error(e);
+  }
+
+  document.getElementById("goBtn").disabled = false;
+}
+
+async function enrichWithNextLines(hits) {
+  if (!hits.length) return hits;
+
+  // groupe par source_file pour minimiser les requêtes
+  const byFile = {};
+  for (const h of hits) {
+    if (!byFile[h.source_file]) byFile[h.source_file] = [];
+    byFile[h.source_file].push(h.row_index + 1);
+  }
+
+  // fetch les lignes suivantes en une requête par fichier
+  const nextMap = {}; // key: `file::row_index` → search_text
+  await Promise.all(Object.entries(byFile).map(async ([file, indices]) => {
     try {
-      const terms = q.toLowerCase().split(/\s+/);
-      S.allResults = [];
-
-      for (const db of DB) {
-        for (const row of db.rows) {
-          const values = Object.values(row).map(v => String(v ?? "").toLowerCase());
-          if (terms.every(t => values.some(v => v.includes(t)))) {
-            S.allResults.push({ _src: db.name, ...row });
-          }
-        }
+      const uniqueIdx = [...new Set(indices)];
+      // requête: source_file = file AND row_index in (...)
+      const inList = `(${uniqueIdx.join(",")})`;
+      const url    = `${SUPA_URL}/rest/v1/records` +
+        `?source_file=eq.${encodeURIComponent(file)}` +
+        `&row_index=in.${inList}` +
+        `&select=row_index,search_text`;
+      const r = await fetch(url, { headers: sbHeaders() });
+      if (!r.ok) return;
+      const rows = await r.json();
+      for (const row of rows) {
+        nextMap[`${file}::${row.row_index}`] = row.search_text;
       }
+    } catch {}
+  }));
 
-      S.total   = S.allResults.length;
-      S.results = S.allResults.slice(p * S.size, (p + 1) * S.size);
-      renderResults();
-      document.getElementById("stLeft").textContent = `"${q}" — ${S.total.toLocaleString()} résultat(s)`;
-    } catch(e) {
-      document.getElementById("stLeft").textContent = "erreur: " + e.message;
-    }
-    document.getElementById("goBtn").disabled = false;
-  }, 10);
+  return hits.map(h => ({
+    ...h,
+    next_line: nextMap[`${h.source_file}::${h.row_index + 1}`] ?? null
+  }));
 }
 
 // ── render résultats ───────────────────────────────────────────────────────────
-function renderResults() {
-  const box = document.getElementById("results");
-  const hdr = document.getElementById("rHeader");
-  if (!S.query) {
-    box.innerHTML = '<div class="empty">charge un fichier et tape une recherche.</div>';
-    hdr.style.display = "none"; renderPag(); return;
-  }
+function renderResults(q, results, total, page) {
+  const box    = document.getElementById("results");
+  const hdr    = document.getElementById("rHeader");
+  const rCount = document.getElementById("rCount");
+
   hdr.style.display = "flex";
-  document.getElementById("rCount").textContent = `${S.total.toLocaleString()} résultat${S.total !== 1 ? "s" : ""}`;
-  if (!S.results.length) { box.innerHTML = '<div class="empty">aucun résultat.</div>'; renderPag(); return; }
-  const terms = S.query.toLowerCase().split(/\s+/);
-  box.innerHTML = S.results.map(row => renderCard(row, terms)).join("");
-  renderPag();
+  rCount.textContent = `${total.toLocaleString()} résultat${total !== 1 ? "s" : ""}`;
+
+  if (!results.length) {
+    box.innerHTML = '<div class="empty">aucun résultat.</div>';
+    renderPag(total, page);
+    return;
+  }
+
+  const terms = q.toLowerCase().split(/\s+/);
+  box.innerHTML = results.map(row => renderCard(row, terms)).join("");
+  renderPag(total, page);
 }
 
 function renderCard(row, terms) {
-  const fields = Object.entries(row).filter(([k]) => k !== "_src");
-  const pairs = fields.map(([k, v]) => {
-    const vs  = String(v ?? "");
-    const hl  = terms.some(t => vs.toLowerCase().includes(t));
-    return `<div class="fp">
-      <span class="fk">${esc(k)}</span>
-      <div class="fv ${hl ? "hl" : ""}">
-        <span>${esc(trunc(vs, 85))}</span>
-        <button class="cp" onclick="cpv('${vs.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')" title="copier">⎘</button>
-      </div>
-    </div>`;
-  }).join("");
+  const lineHl = terms.some(t => row.search_text.toLowerCase().includes(t));
+  const lineEsc = esc(row.search_text);
+  const nextEsc = row.next_line ? esc(row.next_line) : null;
+
   return `<div class="card">
-    <div class="card-meta"><span class="card-src">📁 ${esc(row._src)}</span></div>
-    <div class="card-fields">${pairs}</div>
+    <div class="card-meta">
+      <span class="card-src">📁 ${esc(row.source_file)}</span>
+      <span>ligne ${row.row_index + 1}</span>
+    </div>
+    <div class="card-row">
+      <span class="card-label">ligne trouvée</span>
+      <div class="card-line ${lineHl ? "hl" : ""}">
+        <span style="flex:1">${lineEsc}</span>
+        <button class="cp" onclick="cpv(${JSON.stringify(row.search_text)})" title="copier">⎘</button>
+      </div>
+    </div>
+    ${nextEsc ? `
+    <hr class="card-divider">
+    <div class="card-row">
+      <span class="card-label">ligne suivante</span>
+      <div class="card-line next">
+        <span style="flex:1">${nextEsc}</span>
+        <button class="cp" onclick="cpv(${JSON.stringify(row.next_line)})" title="copier">⎘</button>
+      </div>
+    </div>` : ""}
   </div>`;
 }
 
-function renderPag() {
-  const pages = Math.ceil(S.total / S.size);
+function renderPag(total, page) {
+  const pages = Math.ceil(total / PAGE_SIZE);
   const el    = document.getElementById("pag");
   if (pages <= 1) { el.innerHTML = ""; return; }
-  let h = `<button class="pb" onclick="doSearch(${S.page - 1})" ${S.page === 0 ? "disabled" : ""}>←</button>`;
+  let h = `<button class="pb" onclick="doSearch(${page - 1})" ${page === 0 ? "disabled" : ""}>←</button>`;
   for (let i = 0; i < pages; i++) {
-    if (pages > 10 && Math.abs(i - S.page) > 2 && i !== 0 && i !== pages - 1) {
+    if (pages > 10 && Math.abs(i - page) > 2 && i !== 0 && i !== pages - 1) {
       if (i === 1 || i === pages - 2) h += '<span style="color:var(--muted);padding:0 .3rem">…</span>';
       continue;
     }
-    h += `<button class="pb ${i === S.page ? "active" : ""}" onclick="doSearch(${i})">${i + 1}</button>`;
+    h += `<button class="pb ${i === page ? "active" : ""}" onclick="doSearch(${i})">${i + 1}</button>`;
   }
-  h += `<button class="pb" onclick="doSearch(${S.page + 1})" ${S.page >= pages - 1 ? "disabled" : ""}>→</button>`;
+  h += `<button class="pb" onclick="doSearch(${page + 1})" ${page >= pages - 1 ? "disabled" : ""}>→</button>`;
   el.innerHTML = h;
 }
 
 // ── export ────────────────────────────────────────────────────────────────────
 function exportJSON() {
-  const blob = new Blob([JSON.stringify(S.allResults, null, 2)], { type: "application/json" });
+  const blob = new Blob([JSON.stringify(lastResults, null, 2)], { type: "application/json" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = `export_${Date.now()}.json`; a.click();
 }
 
 // ── utils ─────────────────────────────────────────────────────────────────────
-function cpv(v) { navigator.clipboard.writeText(v).then(() => showToast("copié !")).catch(() => showToast("erreur copie", true)); }
-function showToast(m, err = false) {
-  const t = document.getElementById("toast");
-  t.textContent = m; t.className = "toast" + (err ? " err" : "") + " show";
-  setTimeout(() => t.className = "toast", 2600);
+function cpv(v) {
+  navigator.clipboard.writeText(v)
+    .then(() => showToast("copié !"))
+    .catch(() => showToast("erreur copie", true));
 }
-function esc(s)    { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function trunc(s,n){ return s.length > n ? s.slice(0, n) + "…" : s; }
+function showToast(m, err = false, ok = false) {
+  const t = document.getElementById("toast");
+  t.textContent = m;
+  t.className = "toast show" + (err ? " err" : ok ? " ok" : "");
+  setTimeout(() => { t.className = "toast"; }, 2800);
+}
+function esc(s) {
+  return String(s ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+// ── init ──────────────────────────────────────────────────────────────────────
+loadFileListWithCounts();
 </script>
 </body>
 </html>
