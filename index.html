@@ -375,7 +375,7 @@ async function streamCSVToSupabase(file, tableName, onProgress) {
 
       if (rows.length >= CHUNK_LINES) {
         if (!tableCreated) { await ensureTable(tableName, rows[0]); tableCreated = true; }
-        await insertBatch(tableName, rows);
+        await insertBatch(tableName, normalizeRows(rows));
         totalInserted += rows.length;
         onProgress(totalInserted, file.size, offset);
         rows = [];
@@ -384,12 +384,24 @@ async function streamCSVToSupabase(file, tableName, onProgress) {
     // flush le reste du chunk
     if (rows.length) {
       if (!tableCreated) { await ensureTable(tableName, rows[0]); tableCreated = true; }
-      await insertBatch(tableName, rows);
+      await insertBatch(tableName, normalizeRows(rows));
       totalInserted += rows.length;
       onProgress(totalInserted, file.size, offset);
     }
   }
   return totalInserted;
+}
+
+// normalise un tableau d'objets : union de toutes les clés, valeurs manquantes = ""
+// requis par PostgREST PGRST102 "All object keys must match"
+function normalizeRows(rows) {
+  if (!rows.length) return rows;
+  const allKeys = [...new Set(rows.flatMap(r => Object.keys(r)))];
+  return rows.map(r => {
+    const n = {};
+    allKeys.forEach(k => { n[k] = r[k] ?? ""; });
+    return n;
+  });
 }
 
 async function ensureTable(tableName, sampleRow) {
@@ -476,7 +488,7 @@ async function upsertToSupabase(tableName, rows) {
     const r = await fetch(`${SB_URL}/rest/v1/${tableName}`, {
       method: "POST",
       headers: { ...HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify(batch)
+      body: JSON.stringify(normalizeRows(batch))
     });
     if (!r.ok) {
       const err = await r.text();
